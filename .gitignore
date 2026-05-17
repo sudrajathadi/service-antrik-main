@@ -1,0 +1,82 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+*.app
+
+# Go build files
+bin/
+dist/
+build/
+tmp/
+vendor/
+
+# Go workspace
+go.work
+go.work.sum
+
+# Coverage files
+coverage.out
+coverage.html
+*.coverprofile
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Database / local storage
+*.db
+*.sqlite
+*.sqlite3
+
+# Docker
+docker-compose.override.yml
+
+# Air live reload
+.air.toml
+
+# OS files
+Thumbs.db
+
+# Generated files
+*.pem
+*.key
+*.crt
+
+# Test cache
+.cache/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Node (if frontend is added later)
+node_modules/
+
+# Gin specific
+gin-bin
+
+# Delve debugger
+__debug_bin
+
+# PostgreSQL local dump
+*.sql
+
+# MongoDB local data
+mongodb-data/

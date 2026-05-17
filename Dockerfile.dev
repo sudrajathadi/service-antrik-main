@@ -1,0 +1,18 @@
+# Use the latest Go version (as of May 2026)
+FROM golang:1.26-alpine
+
+# Install git for module management
+RUN apk add --no-cache git
+
+WORKDIR /app
+
+# Now @latest will work because Go 1.26 meets the >= 1.25 requirement
+RUN go install github.com/air-verse/air@latest
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+# Air binary is located in /go/bin/air
+CMD ["air", "-c", ".air.toml"]
