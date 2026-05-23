@@ -1,16 +1,18 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os" // Added to access environment variables directly if needed
 
-	"doctor-booking/config"
-	"doctor-booking/controllers"
-	"doctor-booking/repository"
-	"doctor-booking/routes"
+	"service-antrik-chatbot/config"
+	"service-antrik-chatbot/controllers"
+	"service-antrik-chatbot/repository"
+	"service-antrik-chatbot/routes"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"github.com/redis/go-redis/v9"
 )
 
 // Helper function if not already available globally
@@ -35,12 +37,23 @@ func main() {
         log.Fatalf("Failed to connect to database: %v", err)
     }
 
+    redisClient := redis.NewClient(&redis.Options{
+        Addr:     "192.168.110.102:6379", // Change if your n8n Redis is on a different host/port
+        Password: "",               // Add your Redis password if you have one
+        DB:       0,                // Default DB is usually 0
+    })
+
+    // Optional: Ping Redis to ensure the connection works before starting the app
+    if err := redisClient.Ping(context.Background()).Err(); err != nil {
+        log.Fatalf("Failed to connect to Redis: %v", err)
+    }
+
     // Initialize Repositories
     hospitalRepo := repository.NewHospitalRepository(db)
     specializationRepo := repository.NewSpecializationRepository(db)
     doctorRepo := repository.NewDoctorRepository(db)
     scheduleRepo := repository.NewDoctorScheduleRepository(db)
-    userRepo := repository.NewUserRepository(db)
+    userRepo := repository.NewUserRepository(db, redisClient)
     appointmentRepo := repository.NewAppointmentRepository(db)
 
     // Initialize Controllers
@@ -53,6 +66,12 @@ func main() {
 
     // Setup Router
     r := gin.Default()
+
+    r.GET("/", func(c *gin.Context) {
+        c.JSON(200, gin.H{
+            "message": "AIR WORKING V1",
+        })
+    })
 
     routes.RegisterHospitalRoutes(r, hospitalCtrl)
     routes.RegisterSpecializationRoutes(r, specializationCtrl)

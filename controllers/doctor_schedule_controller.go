@@ -1,11 +1,14 @@
 package controllers
 
 import (
+	"log"
 	"net/http"
 	"strconv"
+	"strings"
+	"time"
 
-	"doctor-booking/models"
-	"doctor-booking/repository"
+	"service-antrik-chatbot/models"
+	"service-antrik-chatbot/repository"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -18,6 +21,8 @@ type DoctorScheduleController struct {
 func NewDoctorScheduleController(repo repository.DoctorScheduleRepository) *DoctorScheduleController {
 	return &DoctorScheduleController{repo}
 }
+
+const ErrMsgInvalidID = "invalid id"
 
 func (c *DoctorScheduleController) Create(ctx *gin.Context) {
 	var schedule models.DoctorSchedule
@@ -32,21 +37,130 @@ func (c *DoctorScheduleController) Create(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, schedule)
 }
 
+
+// Helper function: Now it just accepts the raw data instead of querying the DB itself
+func markBookedSlots(bookedAppointments []models.Appointment, allSlots []models.TimeSlot) []models.TimeSlot {
+	// Create map for O(1) lookups
+	bookedTimes := make(map[string]bool)
+	for _, appt := range bookedAppointments {
+		parsedTime, err := time.Parse("15:04:05", appt.AppointmentTime)
+		if err != nil {
+			parsedTime, _ = time.Parse("15:04", appt.AppointmentTime)
+		}
+		bookedTimes[parsedTime.Format("15:04")] = true
+	}
+
+	// Loop through reference array and flip the bool if it exists in our map
+	for i := range allSlots {
+		if bookedTimes[allSlots[i].Time] {
+			allSlots[i].Booked = true
+		}
+	}
+
+	return allSlots
+}
+
+func generateTimeSlots(start, end string, interval int) []models.TimeSlot {
+	layout := "15:04"
+
+	startTime, _ := time.Parse(layout, start)
+	endTime, _ := time.Parse(layout, end)
+
+	var slots []models.TimeSlot
+
+	for startTime.Before(endTime) {
+		slots = append(slots, models.TimeSlot{
+			Time:   startTime.Format(layout),
+			Booked: false,
+		})
+
+		startTime = startTime.Add(time.Minute * time.Duration(interval))
+	}
+
+	return slots
+}
+
 func (c *DoctorScheduleController) GetAll(ctx *gin.Context) {
 	schedules, err := c.repo.FindAll()
+
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Println("ERROR FIND ALL:", err)
+
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
 		return
 	}
-	ctx.JSON(http.StatusOK, schedules)
+
+	log.Println("TOTAL SCHEDULES:", len(schedules))
+
+	dateStr := ctx.Query("date")
+	log.Println("DATE QUERY:", dateStr)
+
+	var mappedSchedules []models.DoctorSchedule
+
+	for index, schedule := range schedules {
+
+		log.Println("===================================")
+		log.Println("LOOP INDEX:", index)
+		log.Println("DOCTOR ID:", schedule.DoctorID)
+		log.Println("DAY:", schedule.DayOfWeek)
+		log.Println("START:", schedule.StartTime)
+		log.Println("END:", schedule.EndTime)
+		log.Println("INTERVAL:", schedule.SlotInterval)
+
+		generatedSlots := generateTimeSlots(
+			schedule.StartTime,
+			schedule.EndTime,
+			schedule.SlotInterval,
+		)
+
+		log.Println("GENERATED SLOTS COUNT:", len(generatedSlots))
+		log.Printf("GENERATED SLOTS: %+v\n", generatedSlots)
+
+		schedule.TimeSlots = generatedSlots
+
+		if dateStr != "" {
+
+			bookedAppointments, err := c.repo.GetBookedAppointments(
+				schedule.DoctorID,
+				dateStr,
+			)
+
+			if err != nil {
+				log.Println("ERROR GET BOOKED APPOINTMENTS:", err)
+			}
+
+			log.Println("BOOKED APPOINTMENTS COUNT:", len(bookedAppointments))
+			log.Printf("BOOKED APPOINTMENTS: %+v\n", bookedAppointments)
+
+			schedule.TimeSlots = markBookedSlots(
+				bookedAppointments,
+				schedule.TimeSlots,
+			)
+
+			log.Printf("TIME SLOTS AFTER BOOKING: %+v\n", schedule.TimeSlots)
+		}
+
+		log.Printf("FINAL SCHEDULE: %+v\n", schedule)
+
+		mappedSchedules = append(mappedSchedules, schedule)
+	}
+
+	log.Println("===================================")
+	log.Println("FINAL MAPPED SCHEDULES COUNT:", len(mappedSchedules))
+	log.Printf("FINAL RESPONSE: %+v\n", mappedSchedules)
+
+	ctx.JSON(http.StatusOK, mappedSchedules)
 }
 
 func (c *DoctorScheduleController) GetByID(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID format"})
 		return
 	}
+
 	schedule, err := c.repo.FindByID(uint(id))
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -56,13 +170,47 @@ func (c *DoctorScheduleController) GetByID(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	dateStr := ctx.Query("date")
+
+	if dateStr != "" {
+		parsedDate, err := time.Parse("2006-01-02", dateStr)
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid date format. Use YYYY-MM-DD"})
+			return
+		}
+
+		requestedDay := strings.ToLower(parsedDate.Weekday().String())
+		if requestedDay != strings.ToLower(schedule.DayOfWeek) {
+			ctx.JSON(http.StatusBadRequest, gin.H{
+				"error": "The requested date does not match the schedule's day of the week",
+			})
+			return
+		}
+
+		// 1. Fetch appointments from your repository
+		bookedAppointments, _ := c.repo.GetBookedAppointments(schedule.DoctorID, dateStr)
+		
+		// 2. Mark the slots as booked
+		generatedSlots := generateTimeSlots(
+			schedule.StartTime,
+			schedule.EndTime,
+			schedule.SlotInterval,
+		)
+
+		schedule.TimeSlots = markBookedSlots(
+			bookedAppointments,
+			generatedSlots,
+		)
+	}
+
 	ctx.JSON(http.StatusOK, schedule)
 }
 
 func (c *DoctorScheduleController) Update(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": ErrMsgInvalidID})
 		return
 	}
 	schedule, err := c.repo.FindByID(uint(id))
@@ -88,7 +236,7 @@ func (c *DoctorScheduleController) Update(ctx *gin.Context) {
 func (c *DoctorScheduleController) Delete(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": ErrMsgInvalidID})
 		return
 	}
 	if err := c.repo.Delete(uint(id)); err != nil {

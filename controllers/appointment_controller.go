@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"doctor-booking/models"
-	"doctor-booking/repository"
+	"service-antrik-chatbot/models"
+	"service-antrik-chatbot/repository"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -25,6 +25,7 @@ func (c *AppointmentController) Create(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
 	if appointment.Status == "" {
 		appointment.Status = models.StatusPending
 	}
@@ -47,7 +48,7 @@ func (c *AppointmentController) GetAll(ctx *gin.Context) {
 func (c *AppointmentController) GetByID(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid idnya"})
 		return
 	}
 	appointment, err := c.repo.FindByID(uint(id))

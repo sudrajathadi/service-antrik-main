@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"doctor-booking/models"
+	"service-antrik-chatbot/models"
 
 	"gorm.io/gorm"
 )

@@ -1,7 +1,7 @@
 package routes
 
 import (
-	"doctor-booking/controllers"
+	"service-antrik-chatbot/controllers"
 
 	"github.com/gin-gonic/gin"
 )

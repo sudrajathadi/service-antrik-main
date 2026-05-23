@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"doctor-booking/models"
-	"doctor-booking/repository"
+	"service-antrik-chatbot/models"
+	"service-antrik-chatbot/repository"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -44,7 +44,7 @@ func (c *SpecializationController) GetAll(ctx *gin.Context) {
 func (c *SpecializationController) GetByID(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid user id"})
 		return
 	}
 	spec, err := c.repo.FindByID(uint(id))

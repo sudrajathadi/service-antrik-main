@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"doctor-booking/models"
+	"service-antrik-chatbot/models"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -14,12 +14,12 @@ import (
 func ConnectDatabase() (*gorm.DB, error) {
 	dsn := fmt.Sprintf(
 		"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=Asia/Jakarta",
-		getEnv("DB_HOST", "localhost"),
-		getEnv("DB_USER", "postgres"),
-		getEnv("DB_PASSWORD", "postgres"),
-		getEnv("DB_NAME", "doctor_booking"),
-		getEnv("DB_PORT", "5432"),
-		getEnv("DB_SSLMODE", "disable"),
+		getEnv("DB_HOST_GO", "localhost"),
+		getEnv("DB_USER_GO", "postgres"),
+		getEnv("DB_PASSWORD_GO", "postgres"),
+		getEnv("DB_NAME_GO", "doctor_booking"),
+		getEnv("DB_PORT_GO", "5432"),
+		getEnv("DB_SSLMODE_GO", "disable"),
 	)
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
