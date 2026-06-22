@@ -1,0 +1,2 @@
+user_id,doctor_id,hospital_id,appointment_date,appointment_time,symptoms_note,status
+1,1,1,2026-06-21,09:00,Chest pain,pending

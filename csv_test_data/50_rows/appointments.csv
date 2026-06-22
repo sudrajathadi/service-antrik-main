@@ -1,0 +1,51 @@
+user_id,doctor_id,hospital_id,appointment_date,appointment_time,symptoms_note,status
+1,1,1,2026-07-01,08:00,Demam sejak dua hari dan badan terasa lemas,pending
+2,2,2,2026-07-02,09:30,Batuk kering disertai sakit tenggorokan,confirmed
+3,3,3,2026-07-03,10:00,Nyeri dada ringan saat beraktivitas,pending
+4,4,4,2026-07-04,11:30,Sakit kepala berulang sejak minggu lalu,done
+5,5,5,2026-07-05,12:00,Kontrol tekanan darah rutin,cancelled
+6,6,6,2026-07-06,13:30,Nyeri lutut setelah olahraga,pending
+7,7,7,2026-07-07,14:00,Ruam merah dan gatal di lengan,confirmed
+8,8,8,2026-07-08,08:30,Mata merah dan terasa perih,pending
+9,9,9,2026-07-09,09:00,Telinga berdengung sejak kemarin,done
+10,10,10,2026-07-10,10:30,Sakit gigi saat mengunyah,cancelled
+11,11,11,2026-07-11,11:00,Sesak napas ringan pada malam hari,pending
+12,12,12,2026-07-12,12:30,Nyeri perut bagian kanan bawah,confirmed
+13,13,13,2026-07-13,13:00,Konsultasi kehamilan trimester pertama,pending
+14,14,14,2026-07-14,14:30,Sulit tidur dan cemas berlebihan,done
+15,15,15,2026-07-15,08:00,Konsultasi pola makan untuk diabetes,cancelled
+16,16,16,2026-07-16,09:30,Demam sejak dua hari dan badan terasa lemas,pending
+17,17,17,2026-07-17,10:00,Batuk kering disertai sakit tenggorokan,confirmed
+18,18,18,2026-07-18,11:30,Nyeri dada ringan saat beraktivitas,pending
+19,19,19,2026-07-19,12:00,Sakit kepala berulang sejak minggu lalu,done
+20,20,20,2026-07-20,13:30,Kontrol tekanan darah rutin,cancelled
+21,21,21,2026-07-21,14:00,Nyeri lutut setelah olahraga,pending
+22,22,22,2026-07-22,08:30,Ruam merah dan gatal di lengan,confirmed
+23,23,23,2026-07-23,09:00,Mata merah dan terasa perih,pending
+24,24,24,2026-07-24,10:30,Telinga berdengung sejak kemarin,done
+25,25,25,2026-07-25,11:00,Sakit gigi saat mengunyah,cancelled
+26,26,26,2026-07-26,12:30,Sesak napas ringan pada malam hari,pending
+27,27,27,2026-07-27,13:00,Nyeri perut bagian kanan bawah,confirmed
+28,28,28,2026-07-28,14:30,Konsultasi kehamilan trimester pertama,pending
+29,29,29,2026-07-01,08:00,Sulit tidur dan cemas berlebihan,done
+30,30,30,2026-07-02,09:30,Konsultasi pola makan untuk diabetes,cancelled
+31,31,31,2026-07-03,10:00,Demam sejak dua hari dan badan terasa lemas,pending
+32,32,32,2026-07-04,11:30,Batuk kering disertai sakit tenggorokan,confirmed
+33,33,33,2026-07-05,12:00,Nyeri dada ringan saat beraktivitas,pending
+34,34,34,2026-07-06,13:30,Sakit kepala berulang sejak minggu lalu,done
+35,35,35,2026-07-07,14:00,Kontrol tekanan darah rutin,cancelled
+36,36,36,2026-07-08,08:30,Nyeri lutut setelah olahraga,pending
+37,37,37,2026-07-09,09:00,Ruam merah dan gatal di lengan,confirmed
+38,38,38,2026-07-10,10:30,Mata merah dan terasa perih,pending
+39,39,39,2026-07-11,11:00,Telinga berdengung sejak kemarin,done
+40,40,40,2026-07-12,12:30,Sakit gigi saat mengunyah,cancelled
+41,41,41,2026-07-13,13:00,Sesak napas ringan pada malam hari,pending
+42,42,42,2026-07-14,14:30,Nyeri perut bagian kanan bawah,confirmed
+43,43,43,2026-07-15,08:00,Konsultasi kehamilan trimester pertama,pending
+44,44,44,2026-07-16,09:30,Sulit tidur dan cemas berlebihan,done
+45,45,45,2026-07-17,10:00,Konsultasi pola makan untuk diabetes,cancelled
+46,46,46,2026-07-18,11:30,Demam sejak dua hari dan badan terasa lemas,pending
+47,47,47,2026-07-19,12:00,Batuk kering disertai sakit tenggorokan,confirmed
+48,48,48,2026-07-20,13:30,Nyeri dada ringan saat beraktivitas,pending
+49,49,49,2026-07-21,14:00,Sakit kepala berulang sejak minggu lalu,done
+50,50,50,2026-07-22,08:30,Kontrol tekanan darah rutin,cancelled

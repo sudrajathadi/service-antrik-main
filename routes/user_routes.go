@@ -13,6 +13,7 @@ func RegisterUserRoutes(r *gin.Engine, ctrl *controllers.UserController) {
 		users.DELETE("/:id", ctrl.Delete)
 		users.GET("", ctrl.GetAll)
 		users.GET("/chat/:chat_id", ctrl.GetHistory)
+		users.DELETE("/chat/:id", ctrl.ClearHistory)
 		users.GET("/:id", ctrl.GetByID)
 		users.PUT("/:id", ctrl.Update)
 	}

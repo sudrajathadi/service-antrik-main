@@ -15,6 +15,13 @@ type UserController struct {
     repo repository.UserRepository
 }
 
+type CreateUserResponse struct {
+    ID          uint   `json:"id"`
+    FullName    string `json:"full_name"`
+    PhoneNumber string `json:"phone_number"`
+    Email       string `json:"email"`
+}
+
 func NewUserController(repo repository.UserRepository) *UserController {
     return &UserController{repo}
 }
@@ -25,11 +32,19 @@ func (c *UserController) Create(ctx *gin.Context) {
         ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
         return
     }
+
     if err := c.repo.Create(&user); err != nil {
         ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
         return
     }
-    ctx.JSON(http.StatusCreated, user)
+    response := CreateUserResponse{
+        ID:          user.ID,
+        FullName:    user.FullName,
+        PhoneNumber: user.PhoneNumber,
+        Email:       user.Email,
+    }
+
+    ctx.JSON(http.StatusCreated, response)
 }
 
 func (c *UserController) GetAll(ctx *gin.Context) {
@@ -115,4 +130,20 @@ func (c *UserController) GetHistory(ctx *gin.Context) {
     }
     
     ctx.JSON(http.StatusOK, history)
+}
+
+func (c *UserController) ClearHistory(ctx *gin.Context) {
+    chatID := ctx.Param("id")
+    
+    if chatID == "" {
+        ctx.JSON(http.StatusBadRequest, gin.H{"error": "id parameter is required"})
+        return
+    }
+
+    if err := c.repo.DeleteChatHistory(ctx.Request.Context(), chatID); err != nil {
+        ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to clear history: " + err.Error()})
+        return
+    }
+    
+    ctx.JSON(http.StatusOK, gin.H{"message": "chat history cleared successfully"})
 }

@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"service-antrik-chatbot/models"
 	"service-antrik-chatbot/repository"
@@ -15,25 +16,61 @@ type AppointmentController struct {
 	repo repository.AppointmentRepository
 }
 
+type CreateAppointmentResponse struct {
+	ID              uint                     `json:"id"`
+	UserID          uint                     `json:"user_id"`
+	DoctorID        uint                     `json:"doctor_id"`
+	HospitalID      uint                     `json:"hospital_id"`
+	AppointmentDate time.Time                `json:"appointment_date"`
+	AppointmentTime string                   `json:"appointment_time"`
+	SymptomsNote    string                   `json:"symptoms_note"`
+	Status          models.AppointmentStatus `json:"status"`
+	CreatedAt       time.Time                `json:"created_at"`
+}
+
 func NewAppointmentController(repo repository.AppointmentRepository) *AppointmentController {
 	return &AppointmentController{repo}
 }
 
 func (c *AppointmentController) Create(ctx *gin.Context) {
 	var appointment models.Appointment
+
 	if err := ctx.ShouldBindJSON(&appointment); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
 		return
 	}
 
 	if appointment.Status == "" {
 		appointment.Status = models.StatusPending
 	}
+
 	if err := c.repo.Create(&appointment); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
 		return
 	}
-	ctx.JSON(http.StatusCreated, appointment)
+
+	response := CreateAppointmentResponse{
+		ID:              appointment.ID,
+		UserID:          appointment.UserID,
+		DoctorID:        appointment.DoctorID,
+		HospitalID:      appointment.HospitalID,
+		AppointmentDate: appointment.AppointmentDate,
+		AppointmentTime: appointment.AppointmentTime,
+		SymptomsNote:    appointment.SymptomsNote,
+		Status:          appointment.Status,
+		CreatedAt:       appointment.CreatedAt,
+	}
+
+	ctx.JSON(http.StatusCreated, gin.H{
+		"ok":     true,
+		"status": http.StatusCreated,
+		"data":   response,
+		"error":  nil,
+	})
 }
 
 func (c *AppointmentController) GetAll(ctx *gin.Context) {

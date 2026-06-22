@@ -1,0 +1,2 @@
+doctor_id,day_of_week,start_time,end_time,slot_interval
+1,Monday,09:00,12:00,30

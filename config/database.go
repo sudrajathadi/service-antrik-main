@@ -14,12 +14,12 @@ import (
 func ConnectDatabase() (*gorm.DB, error) {
 	dsn := fmt.Sprintf(
 		"host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=Asia/Jakarta",
-		getEnv("DB_HOST_GO", "localhost"),
-		getEnv("DB_USER_GO", "postgres"),
-		getEnv("DB_PASSWORD_GO", "postgres"),
-		getEnv("DB_NAME_GO", "doctor_booking"),
-		getEnv("DB_PORT_GO", "5432"),
-		getEnv("DB_SSLMODE_GO", "disable"),
+		getEnvAny([]string{"DB_HOST", "DB_HOST_GO"}, "localhost"),
+		getEnvAny([]string{"DB_USER", "DB_USER_GO"}, "postgres"),
+		getEnvAny([]string{"DB_PASSWORD", "DB_PASSWORD_GO"}, "postgres"),
+		getEnvAny([]string{"DB_NAME", "DB_NAME_GO"}, "doctor_booking"),
+		getEnvAny([]string{"DB_PORT", "DB_PORT_GO"}, "5432"),
+		getEnvAny([]string{"DB_SSLMODE", "DB_SSLMODE_GO"}, "disable"),
 	)
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
@@ -45,9 +45,11 @@ func ConnectDatabase() (*gorm.DB, error) {
 	return db, nil
 }
 
-func getEnv(key, fallback string) string {
-	if val := os.Getenv(key); val != "" {
-		return val
+func getEnvAny(keys []string, fallback string) string {
+	for _, key := range keys {
+		if val := os.Getenv(key); val != "" {
+			return val
+		}
 	}
 	return fallback
 }

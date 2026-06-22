@@ -1,0 +1,51 @@
+specialization_id,hospital_id,name,bio,experience_years,is_active
+1,1,dr. Farah Saputra,Dokter berpengalaman di RSUP Nasional Dr. Cipto Mangunkusumo untuk layanan penyakit dalam,4,true
+2,2,dr. Galih Mahendra,Dokter berpengalaman di RS Pondok Indah untuk layanan anak,5,true
+3,3,dr. Hana Anggraini,Dokter berpengalaman di RS Siloam Kebon Jeruk untuk layanan kandungan dan kebidanan,6,true
+4,4,"dr. Indra Pratama, Sp.S",Dokter berpengalaman di RS Mitra Keluarga Bekasi untuk layanan bedah umum,7,true
+5,5,dr. Joko Saputra,Dokter berpengalaman di RS Hermina Depok untuk layanan saraf,8,true
+6,6,dr. Kartika Mahendra,Dokter berpengalaman di RS Borromeus untuk layanan jantung dan pembuluh darah,9,true
+7,7,dr. Lestari Anggraini,Dokter berpengalaman di RS Hasan Sadikin untuk layanan kulit dan kelamin,10,true
+8,8,"dr. Maya Pratama, Sp.THT-KL",Dokter berpengalaman di RS Telogorejo untuk layanan mata,11,true
+9,9,dr. Nadia Saputra,Dokter berpengalaman di RS Kariadi untuk layanan tht,12,true
+10,10,drg. Oka Mahendra,Dokter berpengalaman di RS Panti Rapih untuk layanan gigi,13,true
+11,11,dr. Putri Anggraini,Dokter berpengalaman di RSUP Dr. Sardjito untuk layanan ortopedi,14,true
+12,12,"dr. Rizky Pratama, Sp.OG",Dokter berpengalaman di RS Dr. Soetomo untuk layanan paru,15,true
+13,13,dr. Sari Saputra,Dokter berpengalaman di RS Premier Surabaya untuk layanan urologi,16,false
+14,14,dr. Taufik Mahendra,Dokter berpengalaman di RS Saiful Anwar untuk layanan psikiatri,17,true
+15,15,dr. Wulan Anggraini,Dokter berpengalaman di RS Lavalette untuk layanan gizi klinik,18,true
+16,16,"dr. Yusuf Pratama, Sp.KK",Dokter berpengalaman di RSUP Sanglah untuk layanan rehabilitasi medik,19,true
+17,17,dr. Zahra Saputra,Dokter berpengalaman di RS Bali Mandara untuk layanan radiologi,20,true
+18,18,dr. Aditya Mahendra,Dokter berpengalaman di RS Wahidin Sudirohusodo untuk layanan patologi klinik,21,true
+19,19,dr. Bagas Anggraini,Dokter berpengalaman di RS Stella Maris untuk layanan anestesi,22,true
+20,20,drg. Clara Pratama,Dokter berpengalaman di RS Adam Malik untuk layanan bedah saraf,23,true
+21,21,dr. Ahmad Saputra,Dokter berpengalaman di RS Columbia Asia Medan untuk layanan penyakit dalam,24,true
+22,22,dr. Budi Mahendra,Dokter berpengalaman di RSUP M. Djamil untuk layanan anak,3,true
+23,23,dr. Citra Anggraini,Dokter berpengalaman di RS Awal Bros Pekanbaru untuk layanan kandungan dan kebidanan,4,true
+24,24,"dr. Dewi Pratama, Sp.S",Dokter berpengalaman di RS Siloam Sriwijaya untuk layanan bedah umum,5,true
+25,25,dr. Eko Saputra,Dokter berpengalaman di RS Mohammad Hoesin untuk layanan saraf,6,true
+26,26,dr. Farah Mahendra,Dokter berpengalaman di RSUD Abdul Moeloek untuk layanan jantung dan pembuluh darah,7,false
+27,27,dr. Galih Anggraini,Dokter berpengalaman di RS Advent Bandung untuk layanan kulit dan kelamin,8,true
+28,28,"dr. Hana Pratama, Sp.THT-KL",Dokter berpengalaman di RS JIH untuk layanan mata,9,true
+29,29,dr. Indra Saputra,Dokter berpengalaman di RS Muhammadiyah Lamongan untuk layanan tht,10,true
+30,30,drg. Joko Mahendra,Dokter berpengalaman di RS Islam Sultan Agung untuk layanan gigi,11,true
+31,31,dr. Kartika Anggraini,Dokter berpengalaman di RS Bethesda untuk layanan ortopedi,12,true
+32,32,"dr. Lestari Pratama, Sp.OG",Dokter berpengalaman di RS Mayapada Tangerang untuk layanan paru,13,true
+33,33,dr. Maya Saputra,Dokter berpengalaman di RS EMC Alam Sutera untuk layanan urologi,14,true
+34,34,dr. Nadia Mahendra,Dokter berpengalaman di RS Eka Hospital BSD untuk layanan psikiatri,15,true
+35,35,dr. Oka Anggraini,Dokter berpengalaman di RS Permata Cibubur untuk layanan gizi klinik,16,true
+36,36,"dr. Putri Pratama, Sp.KK",Dokter berpengalaman di RS Sentra Medika Cibinong untuk layanan rehabilitasi medik,17,true
+37,37,dr. Rizky Saputra,Dokter berpengalaman di RS PMI Bogor untuk layanan radiologi,18,true
+38,38,dr. Sari Mahendra,Dokter berpengalaman di RS Royal Taruma untuk layanan patologi klinik,19,true
+39,39,dr. Taufik Anggraini,Dokter berpengalaman di RS Pelni untuk layanan anestesi,20,false
+40,40,drg. Wulan Pratama,Dokter berpengalaman di RS Islam Jakarta Cempaka Putih untuk layanan bedah saraf,21,true
+41,41,dr. Yusuf Saputra,Dokter berpengalaman di RS Bunda Jakarta untuk layanan penyakit dalam,22,true
+42,42,dr. Zahra Mahendra,Dokter berpengalaman di RS Omni Pulomas untuk layanan anak,23,true
+43,43,dr. Aditya Anggraini,Dokter berpengalaman di RS Al Islam Bandung untuk layanan kandungan dan kebidanan,24,true
+44,44,"dr. Bagas Pratama, Sp.S",Dokter berpengalaman di RS Dustira untuk layanan bedah umum,3,true
+45,45,dr. Clara Saputra,Dokter berpengalaman di RSUD Dr. Moewardi untuk layanan saraf,4,true
+46,46,dr. Ahmad Mahendra,Dokter berpengalaman di RS Kasih Ibu Surakarta untuk layanan jantung dan pembuluh darah,5,true
+47,47,dr. Budi Anggraini,Dokter berpengalaman di RSUD Dr. Soedarso untuk layanan kulit dan kelamin,6,true
+48,48,"dr. Citra Pratama, Sp.THT-KL",Dokter berpengalaman di RSUD Ulin untuk layanan mata,7,true
+49,49,dr. Dewi Saputra,Dokter berpengalaman di RSUD Dr. Kanujoso Djatiwibowo untuk layanan tht,8,true
+50,50,drg. Eko Mahendra,Dokter berpengalaman di RSUP Prof. Dr. R. D. Kandou untuk layanan gigi,9,true
