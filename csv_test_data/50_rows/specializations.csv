@@ -1,14 +1,15 @@
 name,description
-Penyakit Dalam,Layanan diagnosis dan perawatan penyakit organ dalam
+Dokter Umum,"Layanan pemeriksaan awal, konsultasi kesehatan umum, penanganan keluhan ringan, dan rujukan medis"
+Penyakit Dalam,Layanan diagnosis dan perawatan penyakit organ dalam untuk pasien dewasa
 Anak,"Layanan kesehatan bayi, anak, dan remaja"
 Kandungan dan Kebidanan,"Layanan kehamilan, persalinan, dan kesehatan reproduksi"
-Bedah Umum,Layanan tindakan bedah umum dan konsultasi pasca operasi
-Saraf,"Layanan gangguan saraf, nyeri kepala, dan stroke"
+Bedah Umum,Layanan konsultasi dan tindakan bedah umum
+Saraf,"Layanan gangguan saraf, nyeri kepala kompleks, dan stroke"
 Jantung dan Pembuluh Darah,Layanan pemeriksaan jantung dan pembuluh darah
 Kulit dan Kelamin,"Layanan penyakit kulit, alergi, dan kesehatan kelamin"
 Mata,Layanan pemeriksaan dan perawatan kesehatan mata
 THT,"Layanan telinga, hidung, tenggorokan, dan gangguan pendengaran"
-Gigi,"Layanan pemeriksaan, perawatan, dan tindakan kesehatan gigi"
+Gigi,Layanan pemeriksaan dan perawatan kesehatan gigi
 Ortopedi,"Layanan tulang, sendi, cedera olahraga, dan rehabilitasi"
 Paru,"Layanan gangguan pernapasan, asma, dan paru-paru"
 Urologi,Layanan saluran kemih dan kesehatan pria
@@ -18,34 +19,3 @@ Rehabilitasi Medik,Layanan fisioterapi dan pemulihan fungsi tubuh
 Radiologi,Layanan pemeriksaan pencitraan medis
 Patologi Klinik,Layanan pemeriksaan laboratorium dan interpretasi hasil
 Anestesi,Layanan manajemen nyeri dan pembiusan tindakan medis
-Bedah Saraf,"Layanan tindakan bedah otak, saraf, dan tulang belakang"
-Penyakit Dalam Lanjutan 1,Layanan lanjutan untuk penyakit dalam
-Anak Lanjutan 2,Layanan lanjutan untuk anak
-Kandungan dan Kebidanan Lanjutan 3,Layanan lanjutan untuk kandungan dan kebidanan
-Bedah Umum Lanjutan 4,Layanan lanjutan untuk bedah umum
-Saraf Lanjutan 5,Layanan lanjutan untuk saraf
-Jantung dan Pembuluh Darah Lanjutan 6,Layanan lanjutan untuk jantung dan pembuluh darah
-Kulit dan Kelamin Lanjutan 7,Layanan lanjutan untuk kulit dan kelamin
-Mata Lanjutan 8,Layanan lanjutan untuk mata
-THT Lanjutan 9,Layanan lanjutan untuk tht
-Gigi Lanjutan 10,Layanan lanjutan untuk gigi
-Ortopedi Lanjutan 11,Layanan lanjutan untuk ortopedi
-Paru Lanjutan 12,Layanan lanjutan untuk paru
-Urologi Lanjutan 13,Layanan lanjutan untuk urologi
-Psikiatri Lanjutan 14,Layanan lanjutan untuk psikiatri
-Gizi Klinik Lanjutan 15,Layanan lanjutan untuk gizi klinik
-Rehabilitasi Medik Lanjutan 16,Layanan lanjutan untuk rehabilitasi medik
-Radiologi Lanjutan 17,Layanan lanjutan untuk radiologi
-Patologi Klinik Lanjutan 18,Layanan lanjutan untuk patologi klinik
-Anestesi Lanjutan 19,Layanan lanjutan untuk anestesi
-Bedah Saraf Lanjutan 20,Layanan lanjutan untuk bedah saraf
-Penyakit Dalam Lanjutan 21,Layanan lanjutan untuk penyakit dalam
-Anak Lanjutan 22,Layanan lanjutan untuk anak
-Kandungan dan Kebidanan Lanjutan 23,Layanan lanjutan untuk kandungan dan kebidanan
-Bedah Umum Lanjutan 24,Layanan lanjutan untuk bedah umum
-Saraf Lanjutan 25,Layanan lanjutan untuk saraf
-Jantung dan Pembuluh Darah Lanjutan 26,Layanan lanjutan untuk jantung dan pembuluh darah
-Kulit dan Kelamin Lanjutan 27,Layanan lanjutan untuk kulit dan kelamin
-Mata Lanjutan 28,Layanan lanjutan untuk mata
-THT Lanjutan 29,Layanan lanjutan untuk tht
-Gigi Lanjutan 30,Layanan lanjutan untuk gigi

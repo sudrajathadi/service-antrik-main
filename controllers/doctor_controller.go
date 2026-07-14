@@ -33,12 +33,27 @@ func (c *DoctorController) Create(ctx *gin.Context) {
 }
 
 func (c *DoctorController) GetAll(ctx *gin.Context) {
-	doctors, err := c.repo.FindAll()
+	filter := repository.DoctorFilter{
+		Specialization: queryAny(ctx, "specialization", "spesialisasi"),
+		City:           ctx.Query("city"),
+		Location:       queryAny(ctx, "location", "lokasi"),
+	}
+
+	doctors, err := c.repo.FindAllFiltered(filter)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	ctx.JSON(http.StatusOK, doctors)
+}
+
+func queryAny(ctx *gin.Context, keys ...string) string {
+	for _, key := range keys {
+		if value := ctx.Query(key); value != "" {
+			return value
+		}
+	}
+	return ""
 }
 
 func (c *DoctorController) GetByID(ctx *gin.Context) {

@@ -1,51 +1,101 @@
 specialization_id,hospital_id,name,bio,experience_years,is_active
-1,1,dr. Farah Saputra,Dokter berpengalaman di RSUP Nasional Dr. Cipto Mangunkusumo untuk layanan penyakit dalam,4,true
-2,2,dr. Galih Mahendra,Dokter berpengalaman di RS Pondok Indah untuk layanan anak,5,true
-3,3,dr. Hana Anggraini,Dokter berpengalaman di RS Siloam Kebon Jeruk untuk layanan kandungan dan kebidanan,6,true
-4,4,"dr. Indra Pratama, Sp.S",Dokter berpengalaman di RS Mitra Keluarga Bekasi untuk layanan bedah umum,7,true
-5,5,dr. Joko Saputra,Dokter berpengalaman di RS Hermina Depok untuk layanan saraf,8,true
-6,6,dr. Kartika Mahendra,Dokter berpengalaman di RS Borromeus untuk layanan jantung dan pembuluh darah,9,true
-7,7,dr. Lestari Anggraini,Dokter berpengalaman di RS Hasan Sadikin untuk layanan kulit dan kelamin,10,true
-8,8,"dr. Maya Pratama, Sp.THT-KL",Dokter berpengalaman di RS Telogorejo untuk layanan mata,11,true
-9,9,dr. Nadia Saputra,Dokter berpengalaman di RS Kariadi untuk layanan tht,12,true
-10,10,drg. Oka Mahendra,Dokter berpengalaman di RS Panti Rapih untuk layanan gigi,13,true
-11,11,dr. Putri Anggraini,Dokter berpengalaman di RSUP Dr. Sardjito untuk layanan ortopedi,14,true
-12,12,"dr. Rizky Pratama, Sp.OG",Dokter berpengalaman di RS Dr. Soetomo untuk layanan paru,15,true
-13,13,dr. Sari Saputra,Dokter berpengalaman di RS Premier Surabaya untuk layanan urologi,16,false
-14,14,dr. Taufik Mahendra,Dokter berpengalaman di RS Saiful Anwar untuk layanan psikiatri,17,true
-15,15,dr. Wulan Anggraini,Dokter berpengalaman di RS Lavalette untuk layanan gizi klinik,18,true
-16,16,"dr. Yusuf Pratama, Sp.KK",Dokter berpengalaman di RSUP Sanglah untuk layanan rehabilitasi medik,19,true
-17,17,dr. Zahra Saputra,Dokter berpengalaman di RS Bali Mandara untuk layanan radiologi,20,true
-18,18,dr. Aditya Mahendra,Dokter berpengalaman di RS Wahidin Sudirohusodo untuk layanan patologi klinik,21,true
-19,19,dr. Bagas Anggraini,Dokter berpengalaman di RS Stella Maris untuk layanan anestesi,22,true
-20,20,drg. Clara Pratama,Dokter berpengalaman di RS Adam Malik untuk layanan bedah saraf,23,true
-21,21,dr. Ahmad Saputra,Dokter berpengalaman di RS Columbia Asia Medan untuk layanan penyakit dalam,24,true
-22,22,dr. Budi Mahendra,Dokter berpengalaman di RSUP M. Djamil untuk layanan anak,3,true
-23,23,dr. Citra Anggraini,Dokter berpengalaman di RS Awal Bros Pekanbaru untuk layanan kandungan dan kebidanan,4,true
-24,24,"dr. Dewi Pratama, Sp.S",Dokter berpengalaman di RS Siloam Sriwijaya untuk layanan bedah umum,5,true
-25,25,dr. Eko Saputra,Dokter berpengalaman di RS Mohammad Hoesin untuk layanan saraf,6,true
-26,26,dr. Farah Mahendra,Dokter berpengalaman di RSUD Abdul Moeloek untuk layanan jantung dan pembuluh darah,7,false
-27,27,dr. Galih Anggraini,Dokter berpengalaman di RS Advent Bandung untuk layanan kulit dan kelamin,8,true
-28,28,"dr. Hana Pratama, Sp.THT-KL",Dokter berpengalaman di RS JIH untuk layanan mata,9,true
-29,29,dr. Indra Saputra,Dokter berpengalaman di RS Muhammadiyah Lamongan untuk layanan tht,10,true
-30,30,drg. Joko Mahendra,Dokter berpengalaman di RS Islam Sultan Agung untuk layanan gigi,11,true
-31,31,dr. Kartika Anggraini,Dokter berpengalaman di RS Bethesda untuk layanan ortopedi,12,true
-32,32,"dr. Lestari Pratama, Sp.OG",Dokter berpengalaman di RS Mayapada Tangerang untuk layanan paru,13,true
-33,33,dr. Maya Saputra,Dokter berpengalaman di RS EMC Alam Sutera untuk layanan urologi,14,true
-34,34,dr. Nadia Mahendra,Dokter berpengalaman di RS Eka Hospital BSD untuk layanan psikiatri,15,true
-35,35,dr. Oka Anggraini,Dokter berpengalaman di RS Permata Cibubur untuk layanan gizi klinik,16,true
-36,36,"dr. Putri Pratama, Sp.KK",Dokter berpengalaman di RS Sentra Medika Cibinong untuk layanan rehabilitasi medik,17,true
-37,37,dr. Rizky Saputra,Dokter berpengalaman di RS PMI Bogor untuk layanan radiologi,18,true
-38,38,dr. Sari Mahendra,Dokter berpengalaman di RS Royal Taruma untuk layanan patologi klinik,19,true
-39,39,dr. Taufik Anggraini,Dokter berpengalaman di RS Pelni untuk layanan anestesi,20,false
-40,40,drg. Wulan Pratama,Dokter berpengalaman di RS Islam Jakarta Cempaka Putih untuk layanan bedah saraf,21,true
-41,41,dr. Yusuf Saputra,Dokter berpengalaman di RS Bunda Jakarta untuk layanan penyakit dalam,22,true
-42,42,dr. Zahra Mahendra,Dokter berpengalaman di RS Omni Pulomas untuk layanan anak,23,true
-43,43,dr. Aditya Anggraini,Dokter berpengalaman di RS Al Islam Bandung untuk layanan kandungan dan kebidanan,24,true
-44,44,"dr. Bagas Pratama, Sp.S",Dokter berpengalaman di RS Dustira untuk layanan bedah umum,3,true
-45,45,dr. Clara Saputra,Dokter berpengalaman di RSUD Dr. Moewardi untuk layanan saraf,4,true
-46,46,dr. Ahmad Mahendra,Dokter berpengalaman di RS Kasih Ibu Surakarta untuk layanan jantung dan pembuluh darah,5,true
-47,47,dr. Budi Anggraini,Dokter berpengalaman di RSUD Dr. Soedarso untuk layanan kulit dan kelamin,6,true
-48,48,"dr. Citra Pratama, Sp.THT-KL",Dokter berpengalaman di RSUD Ulin untuk layanan mata,7,true
-49,49,dr. Dewi Saputra,Dokter berpengalaman di RSUD Dr. Kanujoso Djatiwibowo untuk layanan tht,8,true
-50,50,drg. Eko Mahendra,Dokter berpengalaman di RSUP Prof. Dr. R. D. Kandou untuk layanan gigi,9,true
+1,1,dr. Galih Utami,Dokter praktik di RSUP Nasional Dr. Cipto Mangunkusumo untuk layanan dokter umum wilayah Jabodetabek,3,true
+2,2,"dr. Hana Wibowo, Sp.PD",Dokter praktik di RS Pondok Indah untuk layanan penyakit dalam wilayah Jabodetabek,4,true
+3,3,"dr. Indra Handayani, Sp.A",Dokter praktik di RS Siloam Kebon Jeruk untuk layanan anak wilayah Jabodetabek,5,true
+4,4,"dr. Joko Kusuma, Sp.OG",Dokter praktik di RS Royal Taruma untuk layanan kandungan dan kebidanan wilayah Jabodetabek,6,true
+5,5,"dr. Kartika Mahendra, Sp.B",Dokter praktik di RS Pelni untuk layanan bedah umum wilayah Jabodetabek,7,true
+6,6,"dr. Lestari Rahmawati, Sp.S",Dokter praktik di RS Islam Jakarta Cempaka Putih untuk layanan saraf wilayah Jabodetabek,8,true
+7,7,"dr. Maya Gunawan, Sp.JP",Dokter praktik di RS Bunda Jakarta untuk layanan jantung dan pembuluh darah wilayah Jabodetabek,9,true
+8,8,"dr. Nadia Nugroho, Sp.KK",Dokter praktik di RS Omni Pulomas untuk layanan kulit dan kelamin wilayah Jabodetabek,10,true
+9,9,"dr. Oka Siregar, Sp.M",Dokter praktik di RS Mayapada Kuningan untuk layanan mata wilayah Jabodetabek,11,true
+10,10,"dr. Putri Firmansyah, Sp.THT-KL",Dokter praktik di RS Medistra untuk layanan tht wilayah Jabodetabek,12,true
+11,11,drg. Rizky Wijaya,Dokter praktik di RS Premier Jatinegara untuk layanan gigi wilayah Jabodetabek,13,true
+12,12,"dr. Sari Larasati, Sp.OT",Dokter praktik di RS Hermina Jatinegara untuk layanan ortopedi wilayah Jabodetabek,14,true
+13,13,"dr. Taufik Maulana, Sp.P",Dokter praktik di RS Mitra Keluarga Kelapa Gading untuk layanan paru wilayah Jabodetabek,15,true
+14,14,"dr. Wulan Maharani, Sp.U",Dokter praktik di RS Pluit untuk layanan urologi wilayah Jabodetabek,16,true
+15,15,"dr. Yusuf Saputra, Sp.KJ",Dokter praktik di RS Atma Jaya untuk layanan psikiatri wilayah Jabodetabek,17,true
+16,16,"dr. Zahra Ramadhan, Sp.GK",Dokter praktik di RSUD Tarakan Jakarta untuk layanan gizi klinik wilayah Jabodetabek,18,true
+17,17,"dr. Aditya Oktaviani, Sp.KFR",Dokter praktik di RSUD Pasar Minggu untuk layanan rehabilitasi medik wilayah Jabodetabek,19,false
+18,18,"dr. Bagas Santoso, Sp.Rad",Dokter praktik di RSUD Koja untuk layanan radiologi wilayah Jabodetabek,20,true
+19,19,"dr. Clara Hidayat, Sp.PK",Dokter praktik di RSUD Cengkareng untuk layanan patologi klinik wilayah Jabodetabek,21,true
+20,20,"dr. Dimas Anggraini, Sp.An",Dokter praktik di RSUD Tebet untuk layanan anestesi wilayah Jabodetabek,22,true
+1,21,dr. Elisa Kurniawan,Dokter praktik di RS Mayapada Tangerang untuk layanan dokter umum wilayah Jabodetabek,23,true
+2,22,"dr. Fajar Permata, Sp.PD",Dokter praktik di RS EMC Alam Sutera untuk layanan penyakit dalam wilayah Jabodetabek,24,true
+3,23,"dr. Gita Purnama, Sp.A",Dokter praktik di RS Eka Hospital BSD untuk layanan anak wilayah Jabodetabek,25,true
+4,24,"dr. Hendra Setiawan, Sp.OG",Dokter praktik di RS Sari Asih Karawaci untuk layanan kandungan dan kebidanan wilayah Jabodetabek,26,true
+5,25,"dr. Ahmad Pratama, Sp.B",Dokter praktik di RS Bethsaida Gading Serpong untuk layanan bedah umum wilayah Jabodetabek,2,true
+6,26,"dr. Budi Utami, Sp.S",Dokter praktik di RS Hermina Tangerang untuk layanan saraf wilayah Jabodetabek,3,true
+7,27,"dr. Citra Wibowo, Sp.JP",Dokter praktik di RS Primaya Tangerang untuk layanan jantung dan pembuluh darah wilayah Jabodetabek,4,true
+8,28,"dr. Dewi Handayani, Sp.KK",Dokter praktik di RSUD Kota Tangerang untuk layanan kulit dan kelamin wilayah Jabodetabek,5,true
+9,29,"dr. Eko Kusuma, Sp.M",Dokter praktik di RS Annisa Tangerang untuk layanan mata wilayah Jabodetabek,6,true
+10,30,"dr. Farah Mahendra, Sp.THT-KL",Dokter praktik di RS Bunda Sejati untuk layanan tht wilayah Jabodetabek,7,true
+11,31,drg. Galih Rahmawati,Dokter praktik di RS Mitra Keluarga Bekasi untuk layanan gigi wilayah Jabodetabek,8,true
+12,32,"dr. Hana Gunawan, Sp.OT",Dokter praktik di RS Permata Cibubur untuk layanan ortopedi wilayah Jabodetabek,9,true
+13,33,"dr. Indra Nugroho, Sp.P",Dokter praktik di RS Hermina Bekasi untuk layanan paru wilayah Jabodetabek,10,true
+14,34,"dr. Joko Siregar, Sp.U",Dokter praktik di RS Primaya Bekasi Barat untuk layanan urologi wilayah Jabodetabek,11,false
+15,35,"dr. Kartika Firmansyah, Sp.KJ",Dokter praktik di RS Awal Bros Bekasi untuk layanan psikiatri wilayah Jabodetabek,12,true
+16,36,"dr. Lestari Wijaya, Sp.GK",Dokter praktik di RS Anna Medika Bekasi untuk layanan gizi klinik wilayah Jabodetabek,13,true
+17,37,"dr. Maya Larasati, Sp.KFR",Dokter praktik di RSUD Kota Bekasi untuk layanan rehabilitasi medik wilayah Jabodetabek,14,true
+18,38,"dr. Nadia Maulana, Sp.Rad",Dokter praktik di RS Siloam Bekasi Sepanjang Jaya untuk layanan radiologi wilayah Jabodetabek,15,true
+19,39,"dr. Oka Maharani, Sp.PK",Dokter praktik di RS Bella Bekasi untuk layanan patologi klinik wilayah Jabodetabek,16,true
+20,40,"dr. Putri Saputra, Sp.An",Dokter praktik di RS Graha Juanda untuk layanan anestesi wilayah Jabodetabek,17,true
+1,41,dr. Rizky Ramadhan,Dokter praktik di RS Hermina Depok untuk layanan dokter umum wilayah Jabodetabek,18,true
+2,42,"dr. Sari Oktaviani, Sp.PD",Dokter praktik di RS Mitra Keluarga Depok untuk layanan penyakit dalam wilayah Jabodetabek,19,true
+3,43,"dr. Taufik Santoso, Sp.A",Dokter praktik di RS Bunda Margonda untuk layanan anak wilayah Jabodetabek,20,true
+4,44,"dr. Wulan Hidayat, Sp.OG",Dokter praktik di RS Universitas Indonesia untuk layanan kandungan dan kebidanan wilayah Jabodetabek,21,true
+5,45,"dr. Yusuf Anggraini, Sp.B",Dokter praktik di RS Citra Medika Depok untuk layanan bedah umum wilayah Jabodetabek,22,true
+6,46,"dr. Zahra Kurniawan, Sp.S",Dokter praktik di RS Sentra Medika Cibinong untuk layanan saraf wilayah Jabodetabek,23,true
+7,47,"dr. Aditya Permata, Sp.JP",Dokter praktik di RS PMI Bogor untuk layanan jantung dan pembuluh darah wilayah Jabodetabek,24,true
+8,48,"dr. Bagas Purnama, Sp.KK",Dokter praktik di RS Hermina Bogor untuk layanan kulit dan kelamin wilayah Jabodetabek,25,true
+9,49,"dr. Clara Setiawan, Sp.M",Dokter praktik di RS Azra Bogor untuk layanan mata wilayah Jabodetabek,26,true
+10,50,"dr. Dimas Pratama, Sp.THT-KL",Dokter praktik di RS Melania Bogor untuk layanan tht wilayah Jabodetabek,2,true
+11,51,drg. Elisa Utami,Dokter praktik di RSUP Nasional Dr. Cipto Mangunkusumo untuk layanan gigi wilayah Jabodetabek,3,false
+12,52,"dr. Fajar Wibowo, Sp.OT",Dokter praktik di RS Pondok Indah untuk layanan ortopedi wilayah Jabodetabek,4,true
+13,53,"dr. Gita Handayani, Sp.P",Dokter praktik di RS Siloam Kebon Jeruk untuk layanan paru wilayah Jabodetabek,5,true
+14,54,"dr. Hendra Kusuma, Sp.U",Dokter praktik di RS Royal Taruma untuk layanan urologi wilayah Jabodetabek,6,true
+15,55,"dr. Ahmad Mahendra, Sp.KJ",Dokter praktik di RS Pelni untuk layanan psikiatri wilayah Jabodetabek,7,true
+16,56,"dr. Budi Rahmawati, Sp.GK",Dokter praktik di RS Islam Jakarta Cempaka Putih untuk layanan gizi klinik wilayah Jabodetabek,8,true
+17,57,"dr. Citra Gunawan, Sp.KFR",Dokter praktik di RS Bunda Jakarta untuk layanan rehabilitasi medik wilayah Jabodetabek,9,true
+18,58,"dr. Dewi Nugroho, Sp.Rad",Dokter praktik di RS Omni Pulomas untuk layanan radiologi wilayah Jabodetabek,10,true
+19,59,"dr. Eko Siregar, Sp.PK",Dokter praktik di RS Mayapada Kuningan untuk layanan patologi klinik wilayah Jabodetabek,11,true
+20,60,"dr. Farah Firmansyah, Sp.An",Dokter praktik di RS Medistra untuk layanan anestesi wilayah Jabodetabek,12,true
+1,61,dr. Galih Wijaya,Dokter praktik di RS Premier Jatinegara untuk layanan dokter umum wilayah Jabodetabek,13,true
+2,62,"dr. Hana Larasati, Sp.PD",Dokter praktik di RS Hermina Jatinegara untuk layanan penyakit dalam wilayah Jabodetabek,14,true
+3,63,"dr. Indra Maulana, Sp.A",Dokter praktik di RS Mitra Keluarga Kelapa Gading untuk layanan anak wilayah Jabodetabek,15,true
+4,64,"dr. Joko Maharani, Sp.OG",Dokter praktik di RS Pluit untuk layanan kandungan dan kebidanan wilayah Jabodetabek,16,true
+5,65,"dr. Kartika Saputra, Sp.B",Dokter praktik di RS Atma Jaya untuk layanan bedah umum wilayah Jabodetabek,17,true
+6,66,"dr. Lestari Ramadhan, Sp.S",Dokter praktik di RSUD Tarakan Jakarta untuk layanan saraf wilayah Jabodetabek,18,true
+7,67,"dr. Maya Oktaviani, Sp.JP",Dokter praktik di RSUD Pasar Minggu untuk layanan jantung dan pembuluh darah wilayah Jabodetabek,19,true
+8,68,"dr. Nadia Santoso, Sp.KK",Dokter praktik di RSUD Koja untuk layanan kulit dan kelamin wilayah Jabodetabek,20,false
+9,69,"dr. Oka Hidayat, Sp.M",Dokter praktik di RSUD Cengkareng untuk layanan mata wilayah Jabodetabek,21,true
+10,70,"dr. Putri Anggraini, Sp.THT-KL",Dokter praktik di RSUD Tebet untuk layanan tht wilayah Jabodetabek,22,true
+11,71,drg. Rizky Kurniawan,Dokter praktik di RS Mayapada Tangerang untuk layanan gigi wilayah Jabodetabek,23,true
+12,72,"dr. Sari Permata, Sp.OT",Dokter praktik di RS EMC Alam Sutera untuk layanan ortopedi wilayah Jabodetabek,24,true
+13,73,"dr. Taufik Purnama, Sp.P",Dokter praktik di RS Eka Hospital BSD untuk layanan paru wilayah Jabodetabek,25,true
+14,74,"dr. Wulan Setiawan, Sp.U",Dokter praktik di RS Sari Asih Karawaci untuk layanan urologi wilayah Jabodetabek,26,true
+15,75,"dr. Yusuf Pratama, Sp.KJ",Dokter praktik di RS Bethsaida Gading Serpong untuk layanan psikiatri wilayah Jabodetabek,2,true
+16,76,"dr. Zahra Utami, Sp.GK",Dokter praktik di RS Hermina Tangerang untuk layanan gizi klinik wilayah Jabodetabek,3,true
+17,77,"dr. Aditya Wibowo, Sp.KFR",Dokter praktik di RS Primaya Tangerang untuk layanan rehabilitasi medik wilayah Jabodetabek,4,true
+18,78,"dr. Bagas Handayani, Sp.Rad",Dokter praktik di RSUD Kota Tangerang untuk layanan radiologi wilayah Jabodetabek,5,true
+19,79,"dr. Clara Kusuma, Sp.PK",Dokter praktik di RS Annisa Tangerang untuk layanan patologi klinik wilayah Jabodetabek,6,true
+20,80,"dr. Dimas Mahendra, Sp.An",Dokter praktik di RS Bunda Sejati untuk layanan anestesi wilayah Jabodetabek,7,true
+1,81,dr. Elisa Rahmawati,Dokter praktik di RS Mitra Keluarga Bekasi untuk layanan dokter umum wilayah Jabodetabek,8,true
+2,82,"dr. Fajar Gunawan, Sp.PD",Dokter praktik di RS Permata Cibubur untuk layanan penyakit dalam wilayah Jabodetabek,9,true
+3,83,"dr. Gita Nugroho, Sp.A",Dokter praktik di RS Hermina Bekasi untuk layanan anak wilayah Jabodetabek,10,true
+4,84,"dr. Hendra Siregar, Sp.OG",Dokter praktik di RS Primaya Bekasi Barat untuk layanan kandungan dan kebidanan wilayah Jabodetabek,11,true
+5,85,"dr. Ahmad Firmansyah, Sp.B",Dokter praktik di RS Awal Bros Bekasi untuk layanan bedah umum wilayah Jabodetabek,12,false
+6,86,"dr. Budi Wijaya, Sp.S",Dokter praktik di RS Anna Medika Bekasi untuk layanan saraf wilayah Jabodetabek,13,true
+7,87,"dr. Citra Larasati, Sp.JP",Dokter praktik di RSUD Kota Bekasi untuk layanan jantung dan pembuluh darah wilayah Jabodetabek,14,true
+8,88,"dr. Dewi Maulana, Sp.KK",Dokter praktik di RS Siloam Bekasi Sepanjang Jaya untuk layanan kulit dan kelamin wilayah Jabodetabek,15,true
+9,89,"dr. Eko Maharani, Sp.M",Dokter praktik di RS Bella Bekasi untuk layanan mata wilayah Jabodetabek,16,true
+10,90,"dr. Farah Saputra, Sp.THT-KL",Dokter praktik di RS Graha Juanda untuk layanan tht wilayah Jabodetabek,17,true
+11,91,drg. Galih Ramadhan,Dokter praktik di RS Hermina Depok untuk layanan gigi wilayah Jabodetabek,18,true
+12,92,"dr. Hana Oktaviani, Sp.OT",Dokter praktik di RS Mitra Keluarga Depok untuk layanan ortopedi wilayah Jabodetabek,19,true
+13,93,"dr. Indra Santoso, Sp.P",Dokter praktik di RS Bunda Margonda untuk layanan paru wilayah Jabodetabek,20,true
+14,94,"dr. Joko Hidayat, Sp.U",Dokter praktik di RS Universitas Indonesia untuk layanan urologi wilayah Jabodetabek,21,true
+15,95,"dr. Kartika Anggraini, Sp.KJ",Dokter praktik di RS Citra Medika Depok untuk layanan psikiatri wilayah Jabodetabek,22,true
+16,96,"dr. Lestari Kurniawan, Sp.GK",Dokter praktik di RS Sentra Medika Cibinong untuk layanan gizi klinik wilayah Jabodetabek,23,true
+17,97,"dr. Maya Permata, Sp.KFR",Dokter praktik di RS PMI Bogor untuk layanan rehabilitasi medik wilayah Jabodetabek,24,true
+18,98,"dr. Nadia Purnama, Sp.Rad",Dokter praktik di RS Hermina Bogor untuk layanan radiologi wilayah Jabodetabek,25,true
+19,99,"dr. Oka Setiawan, Sp.PK",Dokter praktik di RS Azra Bogor untuk layanan patologi klinik wilayah Jabodetabek,26,true
+20,100,"dr. Putri Pratama, Sp.An",Dokter praktik di RS Melania Bogor untuk layanan anestesi wilayah Jabodetabek,2,true

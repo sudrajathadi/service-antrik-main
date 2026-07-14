@@ -288,9 +288,13 @@ func (c *BulkUploadController) insertRows(_ context.Context, table string, heade
 			if err != nil {
 				return models.DoctorSchedule{}, err
 			}
+			dayOfWeek, err := requiredDayOfWeek(index, row, rowNumber, "day_of_week")
+			if err != nil {
+				return models.DoctorSchedule{}, err
+			}
 			return models.DoctorSchedule{
 				DoctorID:     doctorID,
-				DayOfWeek:    requiredString(index, row, "day_of_week"),
+				DayOfWeek:    dayOfWeek,
 				StartTime:    requiredString(index, row, "start_time"),
 				EndTime:      requiredString(index, row, "end_time"),
 				SlotInterval: slotInterval,
@@ -426,6 +430,16 @@ func validateRequired(index map[string]int, row []string, rowNumber int, fields 
 
 func requiredString(index map[string]int, row []string, field string) string {
 	return optionalString(index, row, field)
+}
+
+func requiredDayOfWeek(index map[string]int, row []string, rowNumber int, field string) (string, error) {
+	value := strings.ToLower(optionalString(index, row, field))
+	switch value {
+	case "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday":
+		return value, nil
+	default:
+		return "", fmt.Errorf("row %d: %s must be one of monday, tuesday, wednesday, thursday, friday, saturday, sunday", rowNumber, field)
+	}
 }
 
 func optionalString(index map[string]int, row []string, field string) string {

@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -37,7 +38,6 @@ func (c *DoctorScheduleController) Create(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, schedule)
 }
 
-
 // Helper function: Now it just accepts the raw data instead of querying the DB itself
 func markBookedSlots(bookedAppointments []models.Appointment, allSlots []models.TimeSlot) []models.TimeSlot {
 	// Create map for O(1) lookups
@@ -63,8 +63,11 @@ func markBookedSlots(bookedAppointments []models.Appointment, allSlots []models.
 func generateTimeSlots(start, end string, interval int) []models.TimeSlot {
 	layout := "15:04"
 
-	startTime, _ := time.Parse(layout, start)
-	endTime, _ := time.Parse(layout, end)
+	startTime, errStart := parseScheduleTime(start)
+	endTime, errEnd := parseScheduleTime(end)
+	if errStart != nil || errEnd != nil || interval <= 0 {
+		return nil
+	}
 
 	var slots []models.TimeSlot
 
@@ -78,6 +81,17 @@ func generateTimeSlots(start, end string, interval int) []models.TimeSlot {
 	}
 
 	return slots
+}
+
+func parseScheduleTime(value string) (time.Time, error) {
+	for _, layout := range []string{"15:04:05", "15:04"} {
+		parsed, err := time.Parse(layout, value)
+		if err == nil {
+			return parsed, nil
+		}
+	}
+
+	return time.Time{}, errors.New("invalid time format")
 }
 
 func (c *DoctorScheduleController) GetAll(ctx *gin.Context) {
@@ -190,7 +204,7 @@ func (c *DoctorScheduleController) GetByID(ctx *gin.Context) {
 
 		// 1. Fetch appointments from your repository
 		bookedAppointments, _ := c.repo.GetBookedAppointments(schedule.DoctorID, dateStr)
-		
+
 		// 2. Mark the slots as booked
 		generatedSlots := generateTimeSlots(
 			schedule.StartTime,
