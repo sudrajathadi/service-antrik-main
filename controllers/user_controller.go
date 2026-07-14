@@ -36,7 +36,7 @@ func NewUserController(repo repository.UserRepository) *UserController {
 func (c *UserController) Create(ctx *gin.Context) {
 	var request CreateUserRequest
 	if err := ctx.ShouldBindJSON(&request); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		respondError(ctx, http.StatusBadRequest, "INVALID_REQUEST_BODY", "Invalid user request body", err.Error())
 		return
 	}
 
@@ -48,7 +48,7 @@ func (c *UserController) Create(ctx *gin.Context) {
 	}
 
 	if err := c.repo.Create(&user); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondError(ctx, http.StatusUnprocessableEntity, "USER_CREATE_FAILED", "User could not be created", err.Error())
 		return
 	}
 
@@ -60,73 +60,73 @@ func (c *UserController) Create(ctx *gin.Context) {
 		Email:       user.Email,
 	}
 
-	ctx.JSON(http.StatusCreated, response)
+	respondSuccess(ctx, http.StatusCreated, "User created successfully", response)
 }
 
 func (c *UserController) GetAll(ctx *gin.Context) {
 	users, err := c.repo.FindAll()
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondError(ctx, http.StatusInternalServerError, "USERS_FETCH_FAILED", "Users could not be fetched", err.Error())
 		return
 	}
-	ctx.JSON(http.StatusOK, users)
+	respondSuccess(ctx, http.StatusOK, "Users fetched successfully", users)
 }
 
 func (c *UserController) GetByID(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid user id"})
+		respondError(ctx, http.StatusBadRequest, "INVALID_USER_ID", "Invalid user id", err.Error())
 		return
 	}
 	user, err := c.repo.FindByID(uint(id))
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			ctx.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+			respondError(ctx, http.StatusNotFound, "USER_NOT_FOUND", "User not found", err.Error())
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondError(ctx, http.StatusInternalServerError, "USER_FETCH_FAILED", "User could not be fetched", err.Error())
 		return
 	}
-	ctx.JSON(http.StatusOK, user)
+	respondSuccess(ctx, http.StatusOK, "User fetched successfully", user)
 }
 
 func (c *UserController) Update(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		respondError(ctx, http.StatusBadRequest, "INVALID_USER_ID", "Invalid user id", err.Error())
 		return
 	}
 	user, err := c.repo.FindByID(uint(id))
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			ctx.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+			respondError(ctx, http.StatusNotFound, "USER_NOT_FOUND", "User not found", err.Error())
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondError(ctx, http.StatusInternalServerError, "USER_FETCH_FAILED", "User could not be fetched", err.Error())
 		return
 	}
 	if err := ctx.ShouldBindJSON(user); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		respondError(ctx, http.StatusBadRequest, "INVALID_REQUEST_BODY", "Invalid user request body", err.Error())
 		return
 	}
 	if err := c.repo.Update(user); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondError(ctx, http.StatusInternalServerError, "USER_UPDATE_FAILED", "User could not be updated", err.Error())
 		return
 	}
-	ctx.JSON(http.StatusOK, user)
+	respondSuccess(ctx, http.StatusOK, "User updated successfully", user)
 }
 
 func (c *UserController) Delete(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		respondError(ctx, http.StatusBadRequest, "INVALID_USER_ID", "Invalid user id", err.Error())
 		return
 	}
 	if err := c.repo.Delete(uint(id)); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondError(ctx, http.StatusInternalServerError, "USER_DELETE_FAILED", "User could not be deleted", err.Error())
 		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{"message": "user deleted"})
+	respondSuccess(ctx, http.StatusOK, "User deleted successfully", gin.H{"id": id})
 }
 
 // GetHistory fetches the Redis chat history for a specific ChatID
@@ -134,32 +134,32 @@ func (c *UserController) GetHistory(ctx *gin.Context) {
 	chatID := ctx.Param("chat_id")
 
 	if chatID == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "chat_id parameter is required"})
+		respondError(ctx, http.StatusBadRequest, "CHAT_ID_REQUIRED", "chat_id parameter is required", "")
 		return
 	}
 
 	// Pass the context from the request so it can be used by the Redis client
 	history, err := c.repo.GetChatHistory(ctx.Request.Context(), chatID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch chat history: " + err.Error()})
+		respondError(ctx, http.StatusInternalServerError, "CHAT_HISTORY_FETCH_FAILED", "Chat history could not be fetched", err.Error())
 		return
 	}
 
-	ctx.JSON(http.StatusOK, history)
+	respondSuccess(ctx, http.StatusOK, "Chat history fetched successfully", history)
 }
 
 func (c *UserController) ClearHistory(ctx *gin.Context) {
 	chatID := ctx.Param("id")
 
 	if chatID == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "id parameter is required"})
+		respondError(ctx, http.StatusBadRequest, "CHAT_ID_REQUIRED", "id parameter is required", "")
 		return
 	}
 
 	if err := c.repo.DeleteChatHistory(ctx.Request.Context(), chatID); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to clear history: " + err.Error()})
+		respondError(ctx, http.StatusInternalServerError, "CHAT_HISTORY_CLEAR_FAILED", "Chat history could not be cleared", err.Error())
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"message": "chat history cleared successfully"})
+	respondSuccess(ctx, http.StatusOK, "Chat history cleared successfully", gin.H{"chat_id": chatID})
 }

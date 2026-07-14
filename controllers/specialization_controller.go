@@ -22,78 +22,78 @@ func NewSpecializationController(repo repository.SpecializationRepository) *Spec
 func (c *SpecializationController) Create(ctx *gin.Context) {
 	var spec models.Specialization
 	if err := ctx.ShouldBindJSON(&spec); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		respondError(ctx, http.StatusBadRequest, "INVALID_REQUEST_BODY", "Invalid specialization request body", err.Error())
 		return
 	}
 	if err := c.repo.Create(&spec); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondError(ctx, http.StatusUnprocessableEntity, "SPECIALIZATION_CREATE_FAILED", "Specialization could not be created", err.Error())
 		return
 	}
-	ctx.JSON(http.StatusCreated, spec)
+	respondSuccess(ctx, http.StatusCreated, "Specialization created successfully", spec)
 }
 
 func (c *SpecializationController) GetAll(ctx *gin.Context) {
 	specs, err := c.repo.FindAll()
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondError(ctx, http.StatusInternalServerError, "SPECIALIZATIONS_FETCH_FAILED", "Specializations could not be fetched", err.Error())
 		return
 	}
-	ctx.JSON(http.StatusOK, specs)
+	respondSuccess(ctx, http.StatusOK, "Specializations fetched successfully", specs)
 }
 
 func (c *SpecializationController) GetByID(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid user id"})
+		respondError(ctx, http.StatusBadRequest, "INVALID_SPECIALIZATION_ID", "Invalid specialization id", err.Error())
 		return
 	}
 	spec, err := c.repo.FindByID(uint(id))
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			ctx.JSON(http.StatusNotFound, gin.H{"error": "specialization not found"})
+			respondError(ctx, http.StatusNotFound, "SPECIALIZATION_NOT_FOUND", "Specialization not found", err.Error())
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondError(ctx, http.StatusInternalServerError, "SPECIALIZATION_FETCH_FAILED", "Specialization could not be fetched", err.Error())
 		return
 	}
-	ctx.JSON(http.StatusOK, spec)
+	respondSuccess(ctx, http.StatusOK, "Specialization fetched successfully", spec)
 }
 
 func (c *SpecializationController) Update(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		respondError(ctx, http.StatusBadRequest, "INVALID_SPECIALIZATION_ID", "Invalid specialization id", err.Error())
 		return
 	}
 	spec, err := c.repo.FindByID(uint(id))
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			ctx.JSON(http.StatusNotFound, gin.H{"error": "specialization not found"})
+			respondError(ctx, http.StatusNotFound, "SPECIALIZATION_NOT_FOUND", "Specialization not found", err.Error())
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondError(ctx, http.StatusInternalServerError, "SPECIALIZATION_FETCH_FAILED", "Specialization could not be fetched", err.Error())
 		return
 	}
 	if err := ctx.ShouldBindJSON(spec); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		respondError(ctx, http.StatusBadRequest, "INVALID_REQUEST_BODY", "Invalid specialization request body", err.Error())
 		return
 	}
 	if err := c.repo.Update(spec); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondError(ctx, http.StatusInternalServerError, "SPECIALIZATION_UPDATE_FAILED", "Specialization could not be updated", err.Error())
 		return
 	}
-	ctx.JSON(http.StatusOK, spec)
+	respondSuccess(ctx, http.StatusOK, "Specialization updated successfully", spec)
 }
 
 func (c *SpecializationController) Delete(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		respondError(ctx, http.StatusBadRequest, "INVALID_SPECIALIZATION_ID", "Invalid specialization id", err.Error())
 		return
 	}
 	if err := c.repo.Delete(uint(id)); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondError(ctx, http.StatusInternalServerError, "SPECIALIZATION_DELETE_FAILED", "Specialization could not be deleted", err.Error())
 		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{"message": "specialization deleted"})
+	respondSuccess(ctx, http.StatusOK, "Specialization deleted successfully", gin.H{"id": id})
 }

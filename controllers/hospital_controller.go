@@ -22,78 +22,78 @@ func NewHospitalController(repo repository.HospitalRepository) *HospitalControll
 func (c *HospitalController) Create(ctx *gin.Context) {
 	var hospital models.Hospital
 	if err := ctx.ShouldBindJSON(&hospital); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		respondError(ctx, http.StatusBadRequest, "INVALID_REQUEST_BODY", "Invalid hospital request body", err.Error())
 		return
 	}
 	if err := c.repo.Create(&hospital); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondError(ctx, http.StatusUnprocessableEntity, "HOSPITAL_CREATE_FAILED", "Hospital could not be created", err.Error())
 		return
 	}
-	ctx.JSON(http.StatusCreated, hospital)
+	respondSuccess(ctx, http.StatusCreated, "Hospital created successfully", hospital)
 }
 
 func (c *HospitalController) GetAll(ctx *gin.Context) {
 	hospitals, err := c.repo.FindAll()
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondError(ctx, http.StatusInternalServerError, "HOSPITALS_FETCH_FAILED", "Hospitals could not be fetched", err.Error())
 		return
 	}
-	ctx.JSON(http.StatusOK, hospitals)
+	respondSuccess(ctx, http.StatusOK, "Hospitals fetched successfully", hospitals)
 }
 
 func (c *HospitalController) GetByID(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid id when getting by id"})
+		respondError(ctx, http.StatusBadRequest, "INVALID_HOSPITAL_ID", "Invalid hospital id", err.Error())
 		return
 	}
 	hospital, err := c.repo.FindByID(uint(id))
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			ctx.JSON(http.StatusNotFound, gin.H{"error": "hospital not found"})
+			respondError(ctx, http.StatusNotFound, "HOSPITAL_NOT_FOUND", "Hospital not found", err.Error())
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondError(ctx, http.StatusInternalServerError, "HOSPITAL_FETCH_FAILED", "Hospital could not be fetched", err.Error())
 		return
 	}
-	ctx.JSON(http.StatusOK, hospital)
+	respondSuccess(ctx, http.StatusOK, "Hospital fetched successfully", hospital)
 }
 
 func (c *HospitalController) Update(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		respondError(ctx, http.StatusBadRequest, "INVALID_HOSPITAL_ID", "Invalid hospital id", err.Error())
 		return
 	}
 	hospital, err := c.repo.FindByID(uint(id))
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			ctx.JSON(http.StatusNotFound, gin.H{"error": "hospital not found"})
+			respondError(ctx, http.StatusNotFound, "HOSPITAL_NOT_FOUND", "Hospital not found", err.Error())
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondError(ctx, http.StatusInternalServerError, "HOSPITAL_FETCH_FAILED", "Hospital could not be fetched", err.Error())
 		return
 	}
 	if err := ctx.ShouldBindJSON(hospital); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		respondError(ctx, http.StatusBadRequest, "INVALID_REQUEST_BODY", "Invalid hospital request body", err.Error())
 		return
 	}
 	if err := c.repo.Update(hospital); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondError(ctx, http.StatusInternalServerError, "HOSPITAL_UPDATE_FAILED", "Hospital could not be updated", err.Error())
 		return
 	}
-	ctx.JSON(http.StatusOK, hospital)
+	respondSuccess(ctx, http.StatusOK, "Hospital updated successfully", hospital)
 }
 
 func (c *HospitalController) Delete(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		respondError(ctx, http.StatusBadRequest, "INVALID_HOSPITAL_ID", "Invalid hospital id", err.Error())
 		return
 	}
 	if err := c.repo.Delete(uint(id)); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondError(ctx, http.StatusInternalServerError, "HOSPITAL_DELETE_FAILED", "Hospital could not be deleted", err.Error())
 		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{"message": "hospital deleted"})
+	respondSuccess(ctx, http.StatusOK, "Hospital deleted successfully", gin.H{"id": id})
 }

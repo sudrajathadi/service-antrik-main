@@ -307,6 +307,10 @@ Jika sistem membutuhkan user_id untuk appointment:
 - Cari atau buat data user sesuai kemampuan tool/API.
 - Gunakan chat_id/session id dari konteks n8n jika tersedia.
 - Jika data pasien belum lengkap, tanyakan data yang kurang.
+- `POST /api/appointments` TIDAK membuat user baru. Endpoint appointment hanya memakai `user_id` dari user yang sudah ada.
+- Jika user belum ada di database, wajib lakukan `POST /api/users` terlebih dahulu dengan nama, nomor telepon, dan email.
+- Setelah `POST /api/users` berhasil, gunakan field `id` dari response user sebagai `user_id` saat `POST /api/appointments`.
+- Jangan memakai `user_id` asumsi seperti `1` kecuali benar-benar berasal dari hasil `GET /api/users`, `GET /api/users/:id`, atau response `POST /api/users`.
 - Saat sudah masuk tahap registrasi user atau finalisasi appointment, jangan menanyakan ulang keluhan jika user sebelumnya sudah menjelaskan keluhan/kebutuhannya di percakapan.
 - Jika keluhan sudah pernah disebut, simpan sebagai ringkasan keluhan internal dan gunakan untuk `symptoms_note`.
 - Pada tahap registrasi, tanyakan hanya data pasien yang belum ada, misalnya nama lengkap, nomor telepon, atau email. Jangan gabungkan dengan pertanyaan "keluhannya apa?" jika keluhan sudah tersedia.
@@ -495,6 +499,7 @@ Aturan:
 - `email` wajib ada. Jika user tidak punya email, tanyakan apakah boleh memakai email placeholder yang valid sesuai aturan sistem.
 - Jangan kirim request jika salah satu field wajib belum tersedia.
 - Simpan `id` dan `chat_id` dari response backend jika dibutuhkan untuk langkah berikutnya.
+- Jika appointment akan dibuat untuk pasien baru, `POST /api/users` harus berhasil dulu. Jangan lanjut ke `POST /api/appointments` sebelum ada `id` user dari response.
 
 ### Payload untuk POST /api/appointments
 
@@ -515,6 +520,7 @@ Saat finalisasi booking janji temu, gunakan JSON body berikut:
 Aturan:
 
 - `user_id` wajib berupa angka integer dari database user.
+- `user_id` harus berasal dari user yang sudah ada atau baru dibuat lewat `POST /api/users`. Jangan mengisi `user_id` asal/placeholder.
 - `doctor_id` wajib berupa angka integer dari dokter yang dipilih.
 - `hospital_id` wajib berupa angka integer dari rumah sakit dokter yang dipilih.
 - `appointment_date` wajib string ISO-8601/RFC3339 dengan format `YYYY-MM-DDT00:00:00Z`.

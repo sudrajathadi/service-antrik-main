@@ -36,9 +36,7 @@ func (c *AppointmentController) Create(ctx *gin.Context) {
 	var appointment models.Appointment
 
 	if err := ctx.ShouldBindJSON(&appointment); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		respondError(ctx, http.StatusBadRequest, "INVALID_REQUEST_BODY", "Invalid appointment request body", err.Error())
 		return
 	}
 
@@ -47,9 +45,7 @@ func (c *AppointmentController) Create(ctx *gin.Context) {
 	}
 
 	if err := c.repo.Create(&appointment); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		respondError(ctx, http.StatusUnprocessableEntity, "APPOINTMENT_CREATE_FAILED", "Appointment could not be created", err.Error())
 		return
 	}
 
@@ -65,76 +61,71 @@ func (c *AppointmentController) Create(ctx *gin.Context) {
 		CreatedAt:       appointment.CreatedAt,
 	}
 
-	ctx.JSON(http.StatusCreated, gin.H{
-		"ok":     true,
-		"status": http.StatusCreated,
-		"data":   response,
-		"error":  nil,
-	})
+	respondSuccess(ctx, http.StatusCreated, "Appointment created successfully", response)
 }
 
 func (c *AppointmentController) GetAll(ctx *gin.Context) {
 	appointments, err := c.repo.FindAll()
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondError(ctx, http.StatusInternalServerError, "APPOINTMENTS_FETCH_FAILED", "Appointments could not be fetched", err.Error())
 		return
 	}
-	ctx.JSON(http.StatusOK, appointments)
+	respondSuccess(ctx, http.StatusOK, "Appointments fetched successfully", appointments)
 }
 
 func (c *AppointmentController) GetByID(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid idnya"})
+		respondError(ctx, http.StatusBadRequest, "INVALID_APPOINTMENT_ID", "Invalid appointment id", err.Error())
 		return
 	}
 	appointment, err := c.repo.FindByID(uint(id))
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			ctx.JSON(http.StatusNotFound, gin.H{"error": "appointment not found"})
+			respondError(ctx, http.StatusNotFound, "APPOINTMENT_NOT_FOUND", "Appointment not found", err.Error())
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondError(ctx, http.StatusInternalServerError, "APPOINTMENT_FETCH_FAILED", "Appointment could not be fetched", err.Error())
 		return
 	}
-	ctx.JSON(http.StatusOK, appointment)
+	respondSuccess(ctx, http.StatusOK, "Appointment fetched successfully", appointment)
 }
 
 func (c *AppointmentController) Update(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		respondError(ctx, http.StatusBadRequest, "INVALID_APPOINTMENT_ID", "Invalid appointment id", err.Error())
 		return
 	}
 	appointment, err := c.repo.FindByID(uint(id))
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			ctx.JSON(http.StatusNotFound, gin.H{"error": "appointment not found"})
+			respondError(ctx, http.StatusNotFound, "APPOINTMENT_NOT_FOUND", "Appointment not found", err.Error())
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondError(ctx, http.StatusInternalServerError, "APPOINTMENT_FETCH_FAILED", "Appointment could not be fetched", err.Error())
 		return
 	}
 	if err := ctx.ShouldBindJSON(appointment); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		respondError(ctx, http.StatusBadRequest, "INVALID_REQUEST_BODY", "Invalid appointment request body", err.Error())
 		return
 	}
 	if err := c.repo.Update(appointment); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondError(ctx, http.StatusInternalServerError, "APPOINTMENT_UPDATE_FAILED", "Appointment could not be updated", err.Error())
 		return
 	}
-	ctx.JSON(http.StatusOK, appointment)
+	respondSuccess(ctx, http.StatusOK, "Appointment updated successfully", appointment)
 }
 
 func (c *AppointmentController) Delete(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		respondError(ctx, http.StatusBadRequest, "INVALID_APPOINTMENT_ID", "Invalid appointment id", err.Error())
 		return
 	}
 	if err := c.repo.Delete(uint(id)); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondError(ctx, http.StatusInternalServerError, "APPOINTMENT_DELETE_FAILED", "Appointment could not be deleted", err.Error())
 		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{"message": "appointment deleted"})
+	respondSuccess(ctx, http.StatusOK, "Appointment deleted successfully", gin.H{"id": id})
 }

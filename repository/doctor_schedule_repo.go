@@ -13,13 +13,12 @@ type DoctorScheduleRepository interface {
 	FindByID(id uint) (*models.DoctorSchedule, error)
 	Update(schedule *models.DoctorSchedule) error
 	Delete(id uint) error
-	GetBookedAppointments(doctorID uint, dateStr string)([]models.Appointment, error)
+	GetBookedAppointments(doctorID uint, dateStr string) ([]models.Appointment, error)
 }
 
 type doctorScheduleRepository struct {
 	db *gorm.DB
 }
-
 
 func NewDoctorScheduleRepository(db *gorm.DB) DoctorScheduleRepository {
 	return &doctorScheduleRepository{db}
@@ -34,7 +33,6 @@ func (r *doctorScheduleRepository) GetBookedAppointments(doctorID uint, dateStr 
 
 	return bookedAppointments, err
 }
-
 
 func (r *doctorScheduleRepository) Create(schedule *models.DoctorSchedule) error {
 	// 1. Basic sanity check: Start time must be before End time

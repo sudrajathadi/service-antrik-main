@@ -28,14 +28,14 @@ const ErrMsgInvalidID = "invalid id"
 func (c *DoctorScheduleController) Create(ctx *gin.Context) {
 	var schedule models.DoctorSchedule
 	if err := ctx.ShouldBindJSON(&schedule); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		respondError(ctx, http.StatusBadRequest, "INVALID_REQUEST_BODY", "Invalid schedule request body", err.Error())
 		return
 	}
 	if err := c.repo.Create(&schedule); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondError(ctx, http.StatusUnprocessableEntity, "SCHEDULE_CREATE_FAILED", "Schedule could not be created", err.Error())
 		return
 	}
-	ctx.JSON(http.StatusCreated, schedule)
+	respondSuccess(ctx, http.StatusCreated, "Schedule created successfully", schedule)
 }
 
 // Helper function: Now it just accepts the raw data instead of querying the DB itself
@@ -100,9 +100,7 @@ func (c *DoctorScheduleController) GetAll(ctx *gin.Context) {
 	if err != nil {
 		log.Println("ERROR FIND ALL:", err)
 
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		respondError(ctx, http.StatusInternalServerError, "SCHEDULES_FETCH_FAILED", "Schedules could not be fetched", err.Error())
 		return
 	}
 
@@ -165,23 +163,23 @@ func (c *DoctorScheduleController) GetAll(ctx *gin.Context) {
 	log.Println("FINAL MAPPED SCHEDULES COUNT:", len(mappedSchedules))
 	log.Printf("FINAL RESPONSE: %+v\n", mappedSchedules)
 
-	ctx.JSON(http.StatusOK, mappedSchedules)
+	respondSuccess(ctx, http.StatusOK, "Schedules fetched successfully", mappedSchedules)
 }
 
 func (c *DoctorScheduleController) GetByID(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID format"})
+		respondError(ctx, http.StatusBadRequest, "INVALID_SCHEDULE_ID", "Invalid schedule id", err.Error())
 		return
 	}
 
 	schedule, err := c.repo.FindByID(uint(id))
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			ctx.JSON(http.StatusNotFound, gin.H{"error": "schedule not found"})
+			respondError(ctx, http.StatusNotFound, "SCHEDULE_NOT_FOUND", "Schedule not found", err.Error())
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondError(ctx, http.StatusInternalServerError, "SCHEDULE_FETCH_FAILED", "Schedule could not be fetched", err.Error())
 		return
 	}
 
@@ -190,15 +188,13 @@ func (c *DoctorScheduleController) GetByID(ctx *gin.Context) {
 	if dateStr != "" {
 		parsedDate, err := time.Parse("2006-01-02", dateStr)
 		if err != nil {
-			ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid date format. Use YYYY-MM-DD"})
+			respondError(ctx, http.StatusBadRequest, "INVALID_DATE", "Invalid date format. Use YYYY-MM-DD", err.Error())
 			return
 		}
 
 		requestedDay := strings.ToLower(parsedDate.Weekday().String())
 		if requestedDay != strings.ToLower(schedule.DayOfWeek) {
-			ctx.JSON(http.StatusBadRequest, gin.H{
-				"error": "The requested date does not match the schedule's day of the week",
-			})
+			respondError(ctx, http.StatusBadRequest, "DATE_DAY_MISMATCH", "The requested date does not match the schedule's day of the week", "requested day is "+requestedDay+", schedule day is "+schedule.DayOfWeek)
 			return
 		}
 
@@ -218,44 +214,44 @@ func (c *DoctorScheduleController) GetByID(ctx *gin.Context) {
 		)
 	}
 
-	ctx.JSON(http.StatusOK, schedule)
+	respondSuccess(ctx, http.StatusOK, "Schedule fetched successfully", schedule)
 }
 
 func (c *DoctorScheduleController) Update(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": ErrMsgInvalidID})
+		respondError(ctx, http.StatusBadRequest, "INVALID_SCHEDULE_ID", "Invalid schedule id", err.Error())
 		return
 	}
 	schedule, err := c.repo.FindByID(uint(id))
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			ctx.JSON(http.StatusNotFound, gin.H{"error": "schedule not found"})
+			respondError(ctx, http.StatusNotFound, "SCHEDULE_NOT_FOUND", "Schedule not found", err.Error())
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondError(ctx, http.StatusInternalServerError, "SCHEDULE_FETCH_FAILED", "Schedule could not be fetched", err.Error())
 		return
 	}
 	if err := ctx.ShouldBindJSON(schedule); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		respondError(ctx, http.StatusBadRequest, "INVALID_REQUEST_BODY", "Invalid schedule request body", err.Error())
 		return
 	}
 	if err := c.repo.Update(schedule); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondError(ctx, http.StatusInternalServerError, "SCHEDULE_UPDATE_FAILED", "Schedule could not be updated", err.Error())
 		return
 	}
-	ctx.JSON(http.StatusOK, schedule)
+	respondSuccess(ctx, http.StatusOK, "Schedule updated successfully", schedule)
 }
 
 func (c *DoctorScheduleController) Delete(ctx *gin.Context) {
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": ErrMsgInvalidID})
+		respondError(ctx, http.StatusBadRequest, "INVALID_SCHEDULE_ID", "Invalid schedule id", err.Error())
 		return
 	}
 	if err := c.repo.Delete(uint(id)); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		respondError(ctx, http.StatusInternalServerError, "SCHEDULE_DELETE_FAILED", "Schedule could not be deleted", err.Error())
 		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{"message": "schedule deleted"})
+	respondSuccess(ctx, http.StatusOK, "Schedule deleted successfully", gin.H{"id": id})
 }

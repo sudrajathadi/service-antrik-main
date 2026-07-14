@@ -42,13 +42,13 @@ func (c *BulkUploadController) UploadCSV(ctx *gin.Context) {
 	table := strings.TrimSpace(ctx.Param("table"))
 	file, err := ctx.FormFile("file")
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "csv file is required in multipart field 'file'"})
+		respondError(ctx, http.StatusBadRequest, "CSV_FILE_REQUIRED", "csv file is required in multipart field 'file'", err.Error())
 		return
 	}
 
 	openedFile, err := file.Open()
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "failed to open uploaded file: " + err.Error()})
+		respondError(ctx, http.StatusBadRequest, "CSV_FILE_OPEN_FAILED", "failed to open uploaded file", err.Error())
 		return
 	}
 	defer openedFile.Close()
@@ -61,44 +61,38 @@ func (c *BulkUploadController) UploadCSVFromURL(ctx *gin.Context) {
 
 	var request bulkUploadURLRequest
 	if err := ctx.ShouldBindJSON(&request); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "url is required"})
+		respondError(ctx, http.StatusBadRequest, "URL_REQUIRED", "url is required", err.Error())
 		return
 	}
 
 	csvURL, err := normalizeSpreadsheetCSVURL(request.URL, request.GID, request.Sheet)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		respondError(ctx, http.StatusBadRequest, "INVALID_SPREADSHEET_URL", "invalid spreadsheet url", err.Error())
 		return
 	}
 
 	httpClient := &http.Client{Timeout: 30 * time.Second}
 	req, err := http.NewRequestWithContext(ctx.Request.Context(), http.MethodGet, csvURL, nil)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "failed to build spreadsheet request: " + err.Error()})
+		respondError(ctx, http.StatusBadRequest, "SPREADSHEET_REQUEST_BUILD_FAILED", "failed to build spreadsheet request", err.Error())
 		return
 	}
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		ctx.JSON(http.StatusBadGateway, gin.H{"error": "failed to download spreadsheet csv: " + err.Error()})
+		respondError(ctx, http.StatusBadGateway, "SPREADSHEET_DOWNLOAD_FAILED", "failed to download spreadsheet csv", err.Error())
 		return
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error":  fmt.Sprintf("spreadsheet url is not publicly accessible as CSV. Upstream returned status %d", resp.StatusCode),
-			"csvUrl": csvURL,
-		})
+		respondError(ctx, http.StatusBadRequest, "SPREADSHEET_NOT_ACCESSIBLE", "spreadsheet url is not publicly accessible as CSV", fmt.Sprintf("upstream returned status %d for %s", resp.StatusCode, csvURL))
 		return
 	}
 
 	contentType := strings.ToLower(resp.Header.Get("Content-Type"))
 	if strings.Contains(contentType, "text/html") {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"error":  "spreadsheet url returned an HTML page, not CSV. Make sure the sheet is public or published to web",
-			"csvUrl": csvURL,
-		})
+		respondError(ctx, http.StatusBadRequest, "SPREADSHEET_RETURNED_HTML", "spreadsheet url returned an HTML page, not CSV", "make sure the sheet is public or published to web: "+csvURL)
 		return
 	}
 
@@ -112,29 +106,29 @@ func (c *BulkUploadController) processCSVReader(ctx *gin.Context, table string, 
 
 	headers, err := reader.Read()
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "failed to read csv header: " + err.Error()})
+		respondError(ctx, http.StatusBadRequest, "CSV_HEADER_READ_FAILED", "failed to read csv header", err.Error())
 		return
 	}
 
 	result, err := c.insertRows(ctx.Request.Context(), table, headers, reader)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		respondError(ctx, http.StatusBadRequest, "BULK_UPLOAD_FAILED", "bulk upload failed", err.Error())
 		return
 	}
 
 	if len(result.Errors) > 0 {
-		ctx.JSON(http.StatusUnprocessableEntity, result)
+		respondError(ctx, http.StatusUnprocessableEntity, "BULK_UPLOAD_VALIDATION_FAILED", "bulk upload validation failed", strings.Join(result.Errors, "; "))
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, result)
+	respondSuccess(ctx, http.StatusCreated, "bulk upload completed successfully", result)
 }
 
 func (c *BulkUploadController) DownloadTemplate(ctx *gin.Context) {
 	table := strings.TrimSpace(ctx.Param("table"))
 	fileName, ok := csvTemplateFiles[table]
 	if !ok {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("unsupported table %q. supported tables: hospitals, specializations, doctors, doctor_schedules, users, appointments", table)})
+		respondError(ctx, http.StatusBadRequest, "UNSUPPORTED_TABLE", "unsupported table", fmt.Sprintf("unsupported table %q. supported tables: hospitals, specializations, doctors, doctor_schedules, users, appointments", table))
 		return
 	}
 
