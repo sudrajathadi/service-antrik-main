@@ -10,6 +10,7 @@ import (
 type DoctorScheduleRepository interface {
 	Create(schedule *models.DoctorSchedule) error
 	FindAll() ([]models.DoctorSchedule, error)
+	FindAllByDoctorID(doctorID uint) ([]models.DoctorSchedule, error)
 	FindByID(id uint) (*models.DoctorSchedule, error)
 	Update(schedule *models.DoctorSchedule) error
 	Delete(id uint) error
@@ -62,6 +63,12 @@ func (r *doctorScheduleRepository) Create(schedule *models.DoctorSchedule) error
 func (r *doctorScheduleRepository) FindAll() ([]models.DoctorSchedule, error) {
 	var schedules []models.DoctorSchedule
 	err := r.db.Preload("Doctor").Find(&schedules).Error
+	return schedules, err
+}
+
+func (r *doctorScheduleRepository) FindAllByDoctorID(doctorID uint) ([]models.DoctorSchedule, error) {
+	var schedules []models.DoctorSchedule
+	err := r.db.Preload("Doctor").Where("doctor_id = ?", doctorID).Find(&schedules).Error
 	return schedules, err
 }
 

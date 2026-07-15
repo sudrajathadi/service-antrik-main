@@ -4,7 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"service-antrik-chatbot/models"
+	"sort"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/redis/go-redis/v9" // 1. Added Redis import
 	"gorm.io/gorm"
@@ -107,6 +110,8 @@ func (r *userRepository) GetChatHistory(ctx context.Context, chatID string) ([]F
 		history = []FrontendMessage{}
 	}
 
+	sortFrontendMessages(history)
+
 	return history, nil
 }
 
@@ -117,6 +122,43 @@ func firstNonEmpty(values ...string) string {
 		}
 	}
 	return ""
+}
+
+func sortFrontendMessages(messages []FrontendMessage) {
+	sort.SliceStable(messages, func(i, j int) bool {
+		leftTime, leftOK := parseMessageTime(messages[i].Timestamp)
+		rightTime, rightOK := parseMessageTime(messages[j].Timestamp)
+
+		if leftOK && rightOK && !leftTime.Equal(rightTime) {
+			return leftTime.Before(rightTime)
+		}
+
+		return messages[i].Order > messages[j].Order
+	})
+}
+
+func parseMessageTime(value string) (time.Time, bool) {
+	if value == "" {
+		return time.Time{}, false
+	}
+
+	for _, layout := range []string{time.RFC3339Nano, time.RFC3339} {
+		parsed, err := time.Parse(layout, value)
+		if err == nil {
+			return parsed, true
+		}
+	}
+
+	unixValue, err := strconv.ParseInt(value, 10, 64)
+	if err == nil {
+		if unixValue > 1_000_000_000_000 {
+			return time.UnixMilli(unixValue), true
+		}
+
+		return time.Unix(unixValue, 0), true
+	}
+
+	return time.Time{}, false
 }
 
 // --- Standard CRUD Methods Below ---

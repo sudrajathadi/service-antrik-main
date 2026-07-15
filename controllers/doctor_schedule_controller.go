@@ -95,7 +95,21 @@ func parseScheduleTime(value string) (time.Time, error) {
 }
 
 func (c *DoctorScheduleController) GetAll(ctx *gin.Context) {
-	schedules, err := c.repo.FindAll()
+	doctorIDStr := ctx.Query("doctor_id")
+	var schedules []models.DoctorSchedule
+	var err error
+
+	if doctorIDStr != "" {
+		doctorID, parseErr := strconv.Atoi(doctorIDStr)
+		if parseErr != nil || doctorID <= 0 {
+			respondError(ctx, http.StatusBadRequest, "INVALID_DOCTOR_ID", "Invalid doctor id", ErrMsgInvalidID)
+			return
+		}
+
+		schedules, err = c.repo.FindAllByDoctorID(uint(doctorID))
+	} else {
+		schedules, err = c.repo.FindAll()
+	}
 
 	if err != nil {
 		log.Println("ERROR FIND ALL:", err)
