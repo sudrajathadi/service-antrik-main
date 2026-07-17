@@ -4,25 +4,46 @@ import (
 	"context"
 	"log"
 	"os"
-	"time" // Added for CORS MaxAge
+	"strings"
+	"time"
 
+	"service-antrik-chatbot/chatbot"
 	"service-antrik-chatbot/config"
 	"service-antrik-chatbot/controllers"
 	"service-antrik-chatbot/repository"
 	"service-antrik-chatbot/routes"
 
-	"github.com/gin-contrib/cors" // Added CORS package
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
 )
 
-// Helper function if not already available globally
 func getEnv(key, fallback string) string {
 	if value, ok := os.LookupEnv(key); ok {
 		return value
 	}
 	return fallback
+}
+
+func getEnvList(key string, fallback []string) []string {
+	value, ok := os.LookupEnv(key)
+	if !ok || strings.TrimSpace(value) == "" {
+		return fallback
+	}
+
+	items := strings.Split(value, ",")
+	result := make([]string, 0, len(items))
+	for _, item := range items {
+		item = strings.TrimSpace(item)
+		if item != "" {
+			result = append(result, item)
+		}
+	}
+	if len(result) == 0 {
+		return fallback
+	}
+	return result
 }
 
 func main() {
@@ -66,25 +87,35 @@ func main() {
 	userCtrl := controllers.NewUserController(userRepo)
 	appointmentCtrl := controllers.NewAppointmentController(appointmentRepo)
 	bulkUploadCtrl := controllers.NewBulkUploadController(db)
+	chatStateStore := chatbot.NewInMemoryStateStore()
+	chatEvaluator := chatbot.NewEvaluator(
+		hospitalRepo,
+		specializationRepo,
+		doctorRepo,
+		scheduleRepo,
+		userRepo,
+		appointmentRepo,
+		chatStateStore,
+	)
+	chatCtrl := controllers.NewChatController(chatbot.NewEngine(chatEvaluator))
 
 	// Setup Router
 	r := gin.Default()
 
-	// --- NEW CORS CONFIGURATION ---
+	corsOrigins := getEnvList("CORS_ALLOWED_ORIGINS", []string{
+		"https://chatbot.sederajat.work",
+		"http://chatbot.sederajat.work",
+		"http://localhost:3000",
+	})
+
 	r.Use(cors.New(cors.Config{
-		// Allow both HTTP and HTTPS for your domain, plus localhost for frontend development
-		AllowOrigins: []string{
-			"http://chatbot.sederajat.work",
-			"https://chatbot.sederajat.work",
-			"http://localhost:3000",
-		},
+		AllowOrigins: corsOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Accept-Language", "Authorization", "X-Requested-With", "Priority"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
-	// ------------------------------
 
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(200, gin.H{
@@ -99,6 +130,7 @@ func main() {
 	routes.RegisterUserRoutes(r, userCtrl)
 	routes.RegisterAppointmentRoutes(r, appointmentCtrl)
 	routes.RegisterBulkUploadRoutes(r, bulkUploadCtrl)
+	routes.RegisterChatRoutes(r, chatCtrl)
 
 	// 3. Setup Port
 	port := getEnv("APP_PORT", "8080")
