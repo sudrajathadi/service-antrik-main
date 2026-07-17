@@ -31,6 +31,28 @@ func TestParseBookingEntities(t *testing.T) {
 	}
 }
 
+func TestParseHospitalCityWithoutPreposition(t *testing.T) {
+	tokens := Tokenize("rumah sakit tangerang ada apa saja?")
+	parsed := Parse("rumah sakit tangerang ada apa saja?", tokens)
+
+	if parsed.Entities.Location != "tangerang" {
+		t.Fatalf("expected tangerang location, got %q", parsed.Entities.Location)
+	}
+}
+
+func TestParseHospitalNameAndCityForDoctorQuestion(t *testing.T) {
+	message := "rumah sakit bunda margonda depok ada dokter siapa saja?"
+	tokens := Tokenize(message)
+	parsed := Parse(message, tokens)
+
+	if parsed.Entities.HospitalName != "bunda margonda" {
+		t.Fatalf("expected hospital name bunda margonda, got %q", parsed.Entities.HospitalName)
+	}
+	if parsed.Entities.Location != "depok" {
+		t.Fatalf("expected depok location, got %q", parsed.Entities.Location)
+	}
+}
+
 func TestTranslateCoreIntents(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -39,10 +61,11 @@ func TestTranslateCoreIntents(t *testing.T) {
 	}{
 		{name: "hospital list", message: "daftar rumah sakit", intent: IntentListHospitals},
 		{name: "hospital list by city", message: "rumah sakit di tangerang ada apa saja?", intent: IntentListHospitals},
+		{name: "doctors by hospital", message: "rumah sakit bunda margonda depok ada dokter siapa saja?", intent: IntentFindDoctorByHospital},
 		{name: "specialization list", message: "list spesialisasi", intent: IntentListSpecializations},
 		{name: "schedule", message: "jadwal dokter budi", intent: IntentAskDoctorSchedule},
 		{name: "booking", message: "booking dokter anak besok jam 10:00", intent: IntentBookAppointment},
-		{name: "emergency", message: "saya nyeri dada berat dan sulit bernapas", intent: IntentEmergency},
+		{name: "symptom is not recognized", message: "saya nyeri dada berat dan sulit bernapas", intent: IntentUnknown},
 	}
 
 	for _, test := range tests {

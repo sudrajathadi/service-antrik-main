@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
 	"service-antrik-chatbot/models"
 	"service-antrik-chatbot/repository"
@@ -33,12 +34,39 @@ func (c *HospitalController) Create(ctx *gin.Context) {
 }
 
 func (c *HospitalController) GetAll(ctx *gin.Context) {
-	hospitals, err := c.repo.FindAll()
+	city := strings.TrimSpace(ctx.Query("city"))
+
+	var hospitals []models.Hospital
+	var err error
+	if city != "" {
+		hospitals, err = c.repo.FindAllByCity(city)
+	} else {
+		hospitals, err = c.repo.FindAll()
+	}
 	if err != nil {
 		respondError(ctx, http.StatusInternalServerError, "HOSPITALS_FETCH_FAILED", "Hospitals could not be fetched", err.Error())
 		return
 	}
 	respondSuccess(ctx, http.StatusOK, "Hospitals fetched successfully", hospitals)
+}
+
+func (c *HospitalController) SearchByCity(ctx *gin.Context) {
+	city := strings.TrimSpace(ctx.Query("city"))
+	if city == "" {
+		respondError(ctx, http.StatusBadRequest, "CITY_REQUIRED", "city query parameter is required", "Use /api/hospitals/search?city=jakarta")
+		return
+	}
+
+	hospitals, err := c.repo.FindAllByCity(city)
+	if err != nil {
+		respondError(ctx, http.StatusInternalServerError, "HOSPITALS_FETCH_FAILED", "Hospitals could not be fetched", err.Error())
+		return
+	}
+
+	respondSuccess(ctx, http.StatusOK, "Hospitals fetched successfully", gin.H{
+		"city":      city,
+		"hospitals": hospitals,
+	})
 }
 
 func (c *HospitalController) GetByID(ctx *gin.Context) {

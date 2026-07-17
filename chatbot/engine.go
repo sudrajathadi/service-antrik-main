@@ -1,10 +1,14 @@
 package chatbot
 
-type Engine struct {
-	evaluator *Evaluator
+type EvaluatorRunner interface {
+	Evaluate(req ChatRequest, parsed ParseResult, intent Intent, confidence float64) (ChatResponse, error)
 }
 
-func NewEngine(evaluator *Evaluator) *Engine {
+type Engine struct {
+	evaluator EvaluatorRunner
+}
+
+func NewEngine(evaluator EvaluatorRunner) *Engine {
 	return &Engine{evaluator: evaluator}
 }
 

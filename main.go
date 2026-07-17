@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"service-antrik-chatbot/chatbot"
+	chatevaluator "service-antrik-chatbot/chatbot/evaluator"
 	"service-antrik-chatbot/config"
 	"service-antrik-chatbot/controllers"
 	"service-antrik-chatbot/repository"
@@ -87,8 +88,8 @@ func main() {
 	userCtrl := controllers.NewUserController(userRepo)
 	appointmentCtrl := controllers.NewAppointmentController(appointmentRepo)
 	bulkUploadCtrl := controllers.NewBulkUploadController(db)
-	chatStateStore := chatbot.NewInMemoryStateStore()
-	chatEvaluator := chatbot.NewEvaluator(
+	chatStateStore := chatbot.NewRedisStateStore(redisClient)
+	chatEvaluator := chatevaluator.NewEvaluator(
 		hospitalRepo,
 		specializationRepo,
 		doctorRepo,
@@ -109,7 +110,7 @@ func main() {
 	})
 
 	r.Use(cors.New(cors.Config{
-		AllowOrigins: corsOrigins,
+		AllowOrigins:     corsOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Accept-Language", "Authorization", "X-Requested-With", "Priority"},
 		ExposeHeaders:    []string{"Content-Length"},

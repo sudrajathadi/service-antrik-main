@@ -40,6 +40,7 @@ type UserRepository interface {
 	FindAll() ([]models.User, error)
 	FindByID(id uint) (*models.User, error)
 	FindByChatID(chatID string) (*models.User, error)
+	FindByEmail(email string) (*models.User, error)
 	Update(user *models.User) error
 	Delete(id uint) error
 	GetChatHistory(ctx context.Context, chatID string) ([]FrontendMessage, error)
@@ -186,6 +187,15 @@ func (r *userRepository) FindByID(id uint) (*models.User, error) {
 func (r *userRepository) FindByChatID(chatID string) (*models.User, error) {
 	var user models.User
 	err := r.db.Where("chat_id = ?", chatID).First(&user).Error
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+func (r *userRepository) FindByEmail(email string) (*models.User, error) {
+	var user models.User
+	err := r.db.Where("email = ?", email).First(&user).Error
 	if err != nil {
 		return nil, err
 	}

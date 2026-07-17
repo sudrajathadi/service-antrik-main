@@ -22,9 +22,8 @@ const (
 	IntentAskHospitalLocation        Intent = "ASK_HOSPITAL_LOCATION"
 	IntentListSpecializations        Intent = "LIST_SPECIALIZATIONS"
 	IntentFindDoctorBySpecialization Intent = "FIND_DOCTOR_BY_SPECIALIZATION"
-	IntentRecommendSpecialization    Intent = "RECOMMEND_SPECIALIZATION_BY_SYMPTOM"
+	IntentFindDoctorByHospital       Intent = "FIND_DOCTOR_BY_HOSPITAL"
 	IntentBookAppointment            Intent = "BOOK_APPOINTMENT"
-	IntentEmergency                  Intent = "EMERGENCY_RED_FLAG"
 )
 
 type ChatRequest struct {
@@ -99,30 +98,34 @@ type ParseResult struct {
 }
 
 type Entities struct {
-	Symptoms       []string `json:"symptoms,omitempty"`
-	Specialization string   `json:"specialization,omitempty"`
-	DoctorName     string   `json:"doctor_name,omitempty"`
-	HospitalName   string   `json:"hospital_name,omitempty"`
-	Location       string   `json:"location,omitempty"`
-	DateText       string   `json:"date_text,omitempty"`
-	Date           string   `json:"date,omitempty"`
-	Time           string   `json:"time,omitempty"`
+	Specialization string `json:"specialization,omitempty"`
+	DoctorName     string `json:"doctor_name,omitempty"`
+	HospitalName   string `json:"hospital_name,omitempty"`
+	Location       string `json:"location,omitempty"`
+	DateText       string `json:"date_text,omitempty"`
+	Date           string `json:"date,omitempty"`
+	Time           string `json:"time,omitempty"`
 }
 
 type ChatState struct {
-	ChatID               string    `json:"chat_id"`
-	CurrentFlow          string    `json:"current_flow,omitempty"`
-	UserID               uint      `json:"user_id,omitempty"`
-	SelectedDoctorID     uint      `json:"selected_doctor_id,omitempty"`
-	SelectedDoctorName   string    `json:"selected_doctor_name,omitempty"`
-	SelectedHospitalID   uint      `json:"selected_hospital_id,omitempty"`
-	SelectedHospitalName string    `json:"selected_hospital_name,omitempty"`
-	SelectedSpecialty    string    `json:"selected_specialization,omitempty"`
-	SelectedDate         string    `json:"selected_date,omitempty"`
-	SelectedTime         string    `json:"selected_time,omitempty"`
-	SymptomsNote         string    `json:"symptoms_note,omitempty"`
-	Awaiting             string    `json:"awaiting,omitempty"`
-	UpdatedAt            time.Time `json:"updated_at"`
+	ChatID               string           `json:"chat_id"`
+	CurrentFlow          string           `json:"current_flow,omitempty"`
+	UserID               uint             `json:"user_id,omitempty"`
+	SelectedDoctorID     uint             `json:"selected_doctor_id,omitempty"`
+	SelectedDoctorName   string           `json:"selected_doctor_name,omitempty"`
+	SelectedHospitalID   uint             `json:"selected_hospital_id,omitempty"`
+	SelectedHospitalName string           `json:"selected_hospital_name,omitempty"`
+	SelectedSpecialty    string           `json:"selected_specialization,omitempty"`
+	SelectedDate         string           `json:"selected_date,omitempty"`
+	SelectedTime         string           `json:"selected_time,omitempty"`
+	PatientName          string           `json:"patient_name,omitempty"`
+	PatientPhone         string           `json:"patient_phone,omitempty"`
+	PatientEmail         string           `json:"patient_email,omitempty"`
+	Awaiting             string           `json:"awaiting,omitempty"`
+	PendingDoctors       []DoctorSummary  `json:"pending_doctors,omitempty"`
+	PendingSchedules     []ScheduleOption `json:"pending_schedules,omitempty"`
+	PendingTimeSlots     []TimeSlotOption `json:"pending_time_slots,omitempty"`
+	UpdatedAt            time.Time        `json:"updated_at"`
 }
 
 type DoctorSummary struct {
@@ -142,4 +145,23 @@ type ScheduleSummary struct {
 	StartTime  string            `json:"start_time"`
 	EndTime    string            `json:"end_time"`
 	TimeSlots  []models.TimeSlot `json:"time_slots,omitempty"`
+}
+
+type ScheduleOption struct {
+	Number       int    `json:"number"`
+	ScheduleID   uint   `json:"schedule_id"`
+	DoctorID     uint   `json:"doctor_id"`
+	DoctorName   string `json:"doctor_name"`
+	Date         string `json:"date"`
+	DayOfWeek    string `json:"day_of_week"`
+	StartTime    string `json:"start_time"`
+	EndTime      string `json:"end_time"`
+	SlotInterval int    `json:"slot_interval"`
+}
+
+type TimeSlotOption struct {
+	Number int    `json:"number"`
+	Date   string `json:"date"`
+	Time   string `json:"time"`
+	Booked bool   `json:"booked"`
 }

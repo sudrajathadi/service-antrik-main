@@ -2,6 +2,7 @@ package repository
 
 import (
 	"service-antrik-chatbot/models"
+	"strings"
 
 	"gorm.io/gorm"
 )
@@ -9,6 +10,7 @@ import (
 type HospitalRepository interface {
 	Create(hospital *models.Hospital) error
 	FindAll() ([]models.Hospital, error)
+	FindAllByCity(city string) ([]models.Hospital, error)
 	FindByID(id uint) (*models.Hospital, error)
 	Update(hospital *models.Hospital) error
 	Delete(id uint) error
@@ -29,6 +31,17 @@ func (r *hospitalRepository) Create(hospital *models.Hospital) error {
 func (r *hospitalRepository) FindAll() ([]models.Hospital, error) {
 	var hospitals []models.Hospital
 	err := r.db.Find(&hospitals).Error
+	return hospitals, err
+}
+
+func (r *hospitalRepository) FindAllByCity(city string) ([]models.Hospital, error) {
+	city = strings.TrimSpace(city)
+	if city == "" {
+		return r.FindAll()
+	}
+
+	var hospitals []models.Hospital
+	err := r.db.Where("city ILIKE ?", "%"+city+"%").Find(&hospitals).Error
 	return hospitals, err
 }
 
