@@ -33,20 +33,10 @@ func NewEvaluator(
 }
 
 func (e *Evaluator) Evaluate(req ChatRequest, parsed ParseResult, intent Intent, confidence float64) (ChatResponse, error) {
-	state := e.stateStore.Get(req.ChatID)
-	state.ChatID = req.ChatID
-	if req.UserID != 0 {
-		state.UserID = uint(req.UserID)
-	}
+	state := e.loadState(req)
 	e.enrichStateFromParsed(&state, parsed)
 
-	response := ChatResponse{
-		ChatID:     req.ChatID,
-		Intent:     intent,
-		Tokens:     parsed.Tokens,
-		Parsed:     parsed,
-		Confidence: confidence,
-	}
+	response := newResponse(req, parsed, intent, confidence)
 
 	if intent != IntentCancelFlow {
 		handled, flowResponse, err := e.continueBookingFlow(req, state, response)
@@ -58,9 +48,7 @@ func (e *Evaluator) Evaluate(req ChatRequest, parsed ParseResult, intent Intent,
 	if hasPatientDetails(req.Message) {
 		response.Reply = "Data pasien sudah saya terima, tetapi belum ada booking aktif yang menunggu data pasien. Mulai dari pilih dokter, jadwal, dan jam terlebih dahulu, lalu kirim data pasien saat diminta."
 		response.NeedInput = []string{"doctor", "schedule", "time"}
-		response.State = &state
-		e.stateStore.Save(state)
-		return response, nil
+		return e.finish(response, state)
 	}
 
 	switch intent {
@@ -69,8 +57,7 @@ func (e *Evaluator) Evaluate(req ChatRequest, parsed ParseResult, intent Intent,
 	case IntentCancelFlow:
 		e.stateStore.Clear(req.ChatID)
 		response.Reply = "Baik, alur saat ini saya batalkan. Kamu bisa mulai lagi dengan tanya dokter, jadwal, rumah sakit, spesialisasi, atau booking."
-	case IntentConfirmBooking:
-		return e.confirmBooking(req, state, response)
+		return response, nil
 	case IntentListHospitals:
 		return e.listHospitals(state, response)
 	case IntentAskHospitalLocation:
@@ -87,9 +74,7 @@ func (e *Evaluator) Evaluate(req ChatRequest, parsed ParseResult, intent Intent,
 		response.Reply = "Saya belum memahami pesan itu. Saya tidak menilai keluhan medis atau menentukan spesialisasi dari gejala. Kamu bisa bertanya seperti: list rumah sakit, lokasi rumah sakit, list spesialisasi, jadwal dokter, dokter anak, atau booking dokter."
 	}
 
-	response.State = &state
-	e.stateStore.Save(state)
-	return response, nil
+	return e.finish(response, state)
 }
 
 func (e *Evaluator) enrichStateFromParsed(state *ChatState, parsed ParseResult) {
@@ -102,4 +87,34 @@ func (e *Evaluator) enrichStateFromParsed(state *ChatState, parsed ParseResult) 
 	if parsed.Entities.Time != "" {
 		state.SelectedTime = parsed.Entities.Time
 	}
+}
+
+func (e *Evaluator) loadState(req ChatRequest) ChatState {
+	state := e.stateStore.Get(req.ChatID)
+	state.ChatID = req.ChatID
+	if req.UserID != 0 {
+		state.UserID = uint(req.UserID)
+	}
+	return state
+}
+
+func newResponse(req ChatRequest, parsed ParseResult, intent Intent, confidence float64) ChatResponse {
+	return ChatResponse{
+		ChatID:     req.ChatID,
+		Intent:     intent,
+		Tokens:     parsed.Tokens,
+		Parsed:     parsed,
+		Confidence: confidence,
+	}
+}
+
+func (e *Evaluator) finish(response ChatResponse, state ChatState) (ChatResponse, error) {
+	response.State = &state
+	e.stateStore.Save(state)
+	return response, nil
+}
+
+func (e *Evaluator) replyWithState(response ChatResponse, state ChatState, reply string) (ChatResponse, error) {
+	response.Reply = reply
+	return e.finish(response, state)
 }

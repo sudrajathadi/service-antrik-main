@@ -98,7 +98,7 @@ func main() {
 		appointmentRepo,
 		chatStateStore,
 	)
-	chatCtrl := controllers.NewChatController(chatbot.NewEngine(chatEvaluator))
+	chatCtrl := controllers.NewChatController(chatbot.NewEngine(chatEvaluator), userRepo)
 
 	// Setup Router
 	r := gin.Default()

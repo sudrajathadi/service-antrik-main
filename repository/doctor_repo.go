@@ -8,6 +8,7 @@ import (
 )
 
 type DoctorFilter struct {
+	HospitalID     uint
 	Specialization string
 	City           string
 	Location       string
@@ -49,6 +50,10 @@ func (r *doctorRepository) FindAllFiltered(filter DoctorFilter) ([]models.Doctor
 
 	if specialization := strings.TrimSpace(filter.Specialization); specialization != "" {
 		query = query.Where("specializations.name ILIKE ?", "%"+specialization+"%")
+	}
+
+	if filter.HospitalID != 0 {
+		query = query.Where("doctors.hospital_id = ?", filter.HospitalID)
 	}
 
 	if city := strings.TrimSpace(filter.City); city != "" {

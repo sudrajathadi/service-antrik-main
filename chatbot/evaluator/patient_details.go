@@ -10,7 +10,17 @@ var (
 	phonePattern = regexp.MustCompile(`(?:\+62|62|0)[0-9][0-9\-\s]{7,}`)
 )
 
-func parsePatientDetails(message string) (string, string, string) {
+type patientDetails struct {
+	Name  string
+	Phone string
+	Email string
+}
+
+func (details patientDetails) Complete() bool {
+	return details.Name != "" && details.Phone != "" && details.Email != ""
+}
+
+func parsePatientDetails(message string) patientDetails {
 	email := emailPattern.FindString(message)
 	phone := normalizePhone(phonePattern.FindString(message))
 	name := parseLabeledValue(message, "nama", "name")
@@ -25,12 +35,15 @@ func parsePatientDetails(message string) (string, string, string) {
 		name = inferNameFromPatientMessage(message, phone, email)
 	}
 
-	return strings.TrimSpace(name), strings.TrimSpace(phone), strings.TrimSpace(email)
+	return patientDetails{
+		Name:  strings.TrimSpace(name),
+		Phone: strings.TrimSpace(phone),
+		Email: strings.TrimSpace(email),
+	}
 }
 
 func hasPatientDetails(message string) bool {
-	name, phone, email := parsePatientDetails(message)
-	return name != "" && phone != "" && email != ""
+	return parsePatientDetails(message).Complete()
 }
 
 func parseLabeledValue(message string, labels ...string) string {

@@ -16,7 +16,6 @@ type TimeSlotOption = chatbot.TimeSlotOption
 const (
 	IntentGreeting                   = chatbot.IntentGreeting
 	IntentCancelFlow                 = chatbot.IntentCancelFlow
-	IntentConfirmBooking             = chatbot.IntentConfirmBooking
 	IntentListHospitals              = chatbot.IntentListHospitals
 	IntentAskHospitalLocation        = chatbot.IntentAskHospitalLocation
 	IntentListSpecializations        = chatbot.IntentListSpecializations

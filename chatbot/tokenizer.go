@@ -6,6 +6,7 @@ import (
 )
 
 const (
+	// Token dasar yang dipakai parser dan translator.
 	TokenDoctor         = "dokter"
 	TokenHospitalFirst  = "rumah"
 	TokenHospitalSecond = "sakit"
@@ -13,6 +14,7 @@ const (
 	TokenBooking        = "booking"
 	TokenLocation       = "lokasi"
 	TokenAddress        = "alamat"
+	TokenDetail         = "detail"
 	TokenSpecialization = "spesialisasi"
 	TokenList           = "list"
 	TokenRegister       = "daftar"
@@ -30,6 +32,7 @@ const (
 )
 
 const (
+	// Frasa yang lebih mudah dicek dari teks asli setelah dinormalisasi.
 	PhraseHospital           = "rumah sakit"
 	PhraseListHospital       = "list rumah sakit"
 	PhraseRegisterHospital   = "daftar rumah sakit"
@@ -50,17 +53,18 @@ var TokenSynonyms = map[string]string{
 	"janji":       TokenBooking,
 	"temu":        TokenBooking,
 	TokenAddress:  TokenLocation,
+	"info":        TokenDetail,
+	"informasi":   TokenDetail,
+	"profil":      TokenDetail,
 	"dimana":      TokenLocation,
 	TokenIn:       TokenIn,
 }
-
-var ConfirmationTokens = []string{"ya", "iya", "y", "ok", "oke", "setuju", "benar", "lanjut", "confirm", "konfirmasi"}
 
 var NegationTokens = []string{"tidak", "nggak", "ga", "gak", TokenCancel, TokenCancelEN, "salah", "bukan"}
 
 var GreetingTokens = []string{"halo", "hai", "hello", "pagi", "siang", "sore", "malam"}
 
-var HospitalLocationIntentTokens = []string{TokenLocation, TokenAddress}
+var HospitalLocationIntentTokens = []string{TokenLocation, TokenAddress, TokenDetail}
 
 var HospitalListIntentTokens = []string{TokenList, TokenRegister, TokenShow, TokenExists, TokenWhat, TokenAll}
 
@@ -70,6 +74,7 @@ var BookingIntentTokens = []string{TokenBooking, "pesan"}
 
 var LocationMarkerTokens = []string{TokenIn, TokenLocation, TokenCity}
 
+// ActionTokens dipakai parser untuk membedakan kata perintah dari nama entity.
 var ActionTokens = []string{
 	"cari",
 	TokenShow,
@@ -88,6 +93,7 @@ var ActionTokens = []string{
 	"tanya",
 }
 
+// EntityStopwordTokens menghentikan pembacaan nama dokter/rumah sakit/kota.
 var EntityStopwordTokens = map[string]bool{
 	TokenExists:   true,
 	"yang":        true,
@@ -105,6 +111,8 @@ var EntityStopwordTokens = map[string]bool{
 	TokenWhat:     true,
 }
 
+// KnownCityPhrases membantu parser memisahkan "RS Bunda Margonda Depok"
+// menjadi hospital_name = "bunda margonda" dan location = "depok".
 var KnownCityPhrases = []string{
 	"jakarta pusat",
 	"jakarta selatan",
@@ -119,6 +127,7 @@ var KnownCityPhrases = []string{
 	"jakarta",
 }
 
+// SpecializationKeywordByToken membuat input seperti "dokter anak" menjadi spesialisasi "anak".
 var SpecializationKeywordByToken = map[string]string{
 	"anak":         "anak",
 	"pediatri":     "anak",

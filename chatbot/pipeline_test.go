@@ -31,6 +31,19 @@ func TestParseBookingEntities(t *testing.T) {
 	}
 }
 
+func TestParseDoctorNameStopsBeforeDate(t *testing.T) {
+	message := "jadwal dokter budi 2026-07-20"
+	tokens := Tokenize(message)
+	parsed := Parse(message, tokens)
+
+	if parsed.Entities.DoctorName != "budi" {
+		t.Fatalf("expected doctor name budi, got %q", parsed.Entities.DoctorName)
+	}
+	if parsed.Entities.Date != "2026-07-20" {
+		t.Fatalf("expected date 2026-07-20, got %q", parsed.Entities.Date)
+	}
+}
+
 func TestParseHospitalCityWithoutPreposition(t *testing.T) {
 	tokens := Tokenize("rumah sakit tangerang ada apa saja?")
 	parsed := Parse("rumah sakit tangerang ada apa saja?", tokens)
@@ -62,8 +75,11 @@ func TestTranslateCoreIntents(t *testing.T) {
 		{name: "hospital list", message: "daftar rumah sakit", intent: IntentListHospitals},
 		{name: "hospital list by city", message: "rumah sakit di tangerang ada apa saja?", intent: IntentListHospitals},
 		{name: "doctors by hospital", message: "rumah sakit bunda margonda depok ada dokter siapa saja?", intent: IntentFindDoctorByHospital},
+		{name: "schedule doctors by hospital", message: "tolong jadwal dokter di rumah sakit RSUP Nasional", intent: IntentFindDoctorByHospital},
+		{name: "hospital detail", message: "detail rumah sakit RSUP Nasional", intent: IntentAskHospitalLocation},
 		{name: "specialization list", message: "list spesialisasi", intent: IntentListSpecializations},
-		{name: "schedule", message: "jadwal dokter budi", intent: IntentAskDoctorSchedule},
+		{name: "schedule with date", message: "jadwal dokter budi besok", intent: IntentAskDoctorSchedule},
+		{name: "schedule without date", message: "jadwal dokter budi", intent: IntentAskDoctor},
 		{name: "booking", message: "booking dokter anak besok jam 10:00", intent: IntentBookAppointment},
 		{name: "symptom is not recognized", message: "saya nyeri dada berat dan sulit bernapas", intent: IntentUnknown},
 	}

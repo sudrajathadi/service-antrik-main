@@ -87,6 +87,18 @@ func buildTimeSlotOptions(schedule ScheduleOption, bookedAppointments []models.A
 	return options
 }
 
+func scheduleMatchesDate(dayName string, date string) (bool, error) {
+	scheduleDay, ok := parseWeekday(dayName)
+	if !ok {
+		return false, nil
+	}
+	parsedDate, err := time.Parse("2006-01-02", date)
+	if err != nil {
+		return false, err
+	}
+	return parsedDate.Weekday() == scheduleDay, nil
+}
+
 func parseClock(value string) (time.Time, error) {
 	for _, layout := range []string{"15:04", "15:04:05"} {
 		parsed, err := time.Parse(layout, value)

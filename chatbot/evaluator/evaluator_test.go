@@ -8,16 +8,16 @@ import (
 )
 
 func TestParsePatientDetails(t *testing.T) {
-	name, phone, email := parsePatientDetails("Nama: Budi Santoso\nPhone: 0812-3456-7890\nEmail: budi@example.com")
+	details := parsePatientDetails("Nama: Budi Santoso\nPhone: 0812-3456-7890\nEmail: budi@example.com")
 
-	if name != "Budi Santoso" {
-		t.Fatalf("expected name Budi Santoso, got %q", name)
+	if details.Name != "Budi Santoso" {
+		t.Fatalf("expected name Budi Santoso, got %q", details.Name)
 	}
-	if phone != "081234567890" {
-		t.Fatalf("expected normalized phone, got %q", phone)
+	if details.Phone != "081234567890" {
+		t.Fatalf("expected normalized phone, got %q", details.Phone)
 	}
-	if email != "budi@example.com" {
-		t.Fatalf("expected email budi@example.com, got %q", email)
+	if details.Email != "budi@example.com" {
+		t.Fatalf("expected email budi@example.com, got %q", details.Email)
 	}
 }
 

@@ -9,12 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/redis/go-redis/v9" // 1. Added Redis import
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
-// 2. Added the required message structs
-// (You can also move these to your models package and import them)
 type LangChainMessage struct {
 	Type      string `json:"type"`
 	Timestamp string `json:"timestamp,omitempty"`
@@ -27,14 +25,13 @@ type LangChainMessage struct {
 }
 
 type FrontendMessage struct {
-	Role      string `json:"role"`     // "user" or "agent"
-	Category  string `json:"category"` // NEW: "chat" or "system"
+	Role      string `json:"role"`
+	Category  string `json:"category"`
 	Content   string `json:"content"`
 	Timestamp string `json:"timestamp,omitempty"`
 	Order     int    `json:"order"`
 }
 
-// 3. Added GetChatHistory to the interface
 type UserRepository interface {
 	Create(user *models.User) error
 	FindAll() ([]models.User, error)
@@ -44,16 +41,15 @@ type UserRepository interface {
 	Update(user *models.User) error
 	Delete(id uint) error
 	GetChatHistory(ctx context.Context, chatID string) ([]FrontendMessage, error)
+	AppendChatHistory(ctx context.Context, chatID string, messages ...FrontendMessage) error
 	DeleteChatHistory(ctx context.Context, chatID string) error
 }
 
-// 4. Added the Redis client to the repository struct
 type userRepository struct {
 	db    *gorm.DB
 	redis *redis.Client
 }
 
-// 5. Updated constructor to require BOTH Gorm and Redis
 func NewUserRepository(db *gorm.DB, redisClient *redis.Client) UserRepository {
 	return &userRepository{
 		db:    db,
@@ -71,41 +67,11 @@ func (r *userRepository) GetChatHistory(ctx context.Context, chatID string) ([]F
 
 	var history []FrontendMessage
 	for index, msgStr := range messagesJSON {
-		var lcMsg LangChainMessage
-
-		if err := json.Unmarshal([]byte(msgStr), &lcMsg); err != nil {
+		message, ok := decodeHistoryMessage(msgStr, index)
+		if !ok {
 			continue
 		}
-
-		// 1. Map roles (catch "tool" as an agent/system interaction)
-		role := "user"
-		if lcMsg.Type == "ai" || lcMsg.Type == "tool" {
-			role = "agent"
-		}
-
-		// 2. Categorize the message
-		category := "chat"
-		contentStr := strings.TrimSpace(lcMsg.Data.Content)
-
-		// Rule A: Is it the AI announcing a tool call?
-		if role == "agent" && strings.HasPrefix(contentStr, "Calling ") {
-			category = "system"
-		}
-
-		// Rule B: Is it the raw JSON output from the HTTP request?
-		// If it starts with JSON brackets, it's database data, not a human chatting.
-		if strings.HasPrefix(contentStr, "[{") || strings.HasPrefix(contentStr, "{\"") {
-			category = "system"
-			role = "agent" // Force it to agent/system so it doesn't look like the user typed it
-		}
-
-		history = append(history, FrontendMessage{
-			Role:      role,
-			Category:  category,
-			Content:   lcMsg.Data.Content,
-			Timestamp: firstNonEmpty(lcMsg.Timestamp, lcMsg.CreatedAt, lcMsg.Data.Timestamp, lcMsg.Data.CreatedAt),
-			Order:     index,
-		})
+		history = append(history, message)
 	}
 
 	if history == nil {
@@ -115,6 +81,84 @@ func (r *userRepository) GetChatHistory(ctx context.Context, chatID string) ([]F
 	sortFrontendMessages(history)
 
 	return history, nil
+}
+
+func (r *userRepository) AppendChatHistory(ctx context.Context, chatID string, messages ...FrontendMessage) error {
+	if len(messages) == 0 {
+		return nil
+	}
+
+	values := make([]interface{}, 0, len(messages))
+	for index, message := range messages {
+		if message.Category == "" {
+			message.Category = "chat"
+		}
+		if message.Timestamp == "" {
+			message.Timestamp = time.Now().Add(time.Duration(index) * time.Nanosecond).Format(time.RFC3339Nano)
+		}
+		payload, err := json.Marshal(message)
+		if err != nil {
+			return err
+		}
+		values = append(values, payload)
+	}
+
+	return r.redis.RPush(ctx, chatID, values...).Err()
+}
+
+func decodeHistoryMessage(value string, index int) (FrontendMessage, bool) {
+	if message, ok := decodeFrontendMessage(value, index); ok {
+		return message, true
+	}
+	return decodeLangChainMessage(value, index)
+}
+
+func decodeFrontendMessage(value string, index int) (FrontendMessage, bool) {
+	var message FrontendMessage
+	if err := json.Unmarshal([]byte(value), &message); err != nil {
+		return FrontendMessage{}, false
+	}
+	if strings.TrimSpace(message.Content) == "" {
+		return FrontendMessage{}, false
+	}
+	if message.Category == "" {
+		message.Category = "chat"
+	}
+	message.Order = index
+	return message, true
+}
+
+func decodeLangChainMessage(value string, index int) (FrontendMessage, bool) {
+	var lcMsg LangChainMessage
+	if err := json.Unmarshal([]byte(value), &lcMsg); err != nil {
+		return FrontendMessage{}, false
+	}
+	if strings.TrimSpace(lcMsg.Data.Content) == "" {
+		return FrontendMessage{}, false
+	}
+
+	role := "user"
+	if lcMsg.Type == "ai" || lcMsg.Type == "tool" {
+		role = "agent"
+	}
+
+	category := "chat"
+	contentStr := strings.TrimSpace(lcMsg.Data.Content)
+	if role == "agent" && strings.HasPrefix(contentStr, "Calling ") {
+		category = "system"
+	}
+	if strings.HasPrefix(contentStr, "[{") || strings.HasPrefix(contentStr, "{\"") {
+		category = "system"
+		role = "agent"
+	}
+
+	return FrontendMessage{
+		Role:      role,
+		Category:  category,
+		Content:   lcMsg.Data.Content,
+		Timestamp: firstNonEmpty(lcMsg.Timestamp, lcMsg.CreatedAt, lcMsg.Data.Timestamp, lcMsg.Data.CreatedAt),
+		Order:     index,
+	}, true
 }
 
 func firstNonEmpty(values ...string) string {

@@ -15,7 +15,6 @@ const (
 	IntentUnknown                    Intent = "UNKNOWN"
 	IntentGreeting                   Intent = "GREETING"
 	IntentCancelFlow                 Intent = "CANCEL_FLOW"
-	IntentConfirmBooking             Intent = "CONFIRM_BOOKING"
 	IntentAskDoctor                  Intent = "ASK_DOCTOR"
 	IntentAskDoctorSchedule          Intent = "ASK_DOCTOR_SCHEDULE"
 	IntentListHospitals              Intent = "LIST_HOSPITALS"
@@ -93,7 +92,6 @@ type ParseResult struct {
 	Tokens          []string `json:"tokens"`
 	ActionWords     []string `json:"action_words,omitempty"`
 	Entities        Entities `json:"entities"`
-	IsConfirmation  bool     `json:"is_confirmation"`
 	IsNegation      bool     `json:"is_negation"`
 }
 
