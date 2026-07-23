@@ -12,17 +12,18 @@ import (
 type Intent string
 
 const (
-	IntentUnknown                    Intent = "UNKNOWN"
-	IntentGreeting                   Intent = "GREETING"
-	IntentCancelFlow                 Intent = "CANCEL_FLOW"
-	IntentAskDoctor                  Intent = "ASK_DOCTOR"
-	IntentAskDoctorSchedule          Intent = "ASK_DOCTOR_SCHEDULE"
-	IntentListHospitals              Intent = "LIST_HOSPITALS"
-	IntentAskHospitalLocation        Intent = "ASK_HOSPITAL_LOCATION"
-	IntentListSpecializations        Intent = "LIST_SPECIALIZATIONS"
-	IntentFindDoctorBySpecialization Intent = "FIND_DOCTOR_BY_SPECIALIZATION"
-	IntentFindDoctorByHospital       Intent = "FIND_DOCTOR_BY_HOSPITAL"
-	IntentBookAppointment            Intent = "BOOK_APPOINTMENT"
+	IntentUnknown                       Intent = "UNKNOWN"
+	IntentGreeting                      Intent = "GREETING"
+	IntentCancelFlow                    Intent = "CANCEL_FLOW"
+	IntentAskDoctor                     Intent = "ASK_DOCTOR"
+	IntentAskDoctorSchedule             Intent = "ASK_DOCTOR_SCHEDULE"
+	IntentListHospitals                 Intent = "LIST_HOSPITALS"
+	IntentAskHospitalLocation           Intent = "ASK_HOSPITAL_LOCATION"
+	IntentListSpecializations           Intent = "LIST_SPECIALIZATIONS"
+	IntentListSpecializationsByHospital Intent = "LIST_SPECIALIZATIONS_BY_HOSPITAL"
+	IntentFindDoctorBySpecialization    Intent = "FIND_DOCTOR_BY_SPECIALIZATION"
+	IntentFindDoctorByHospital          Intent = "FIND_DOCTOR_BY_HOSPITAL"
+	IntentBookAppointment               Intent = "BOOK_APPOINTMENT"
 )
 
 type ChatRequest struct {
@@ -88,11 +89,19 @@ type Token struct {
 }
 
 type ParseResult struct {
-	OriginalMessage string   `json:"original_message"`
-	Tokens          []string `json:"tokens"`
-	ActionWords     []string `json:"action_words,omitempty"`
-	Entities        Entities `json:"entities"`
-	IsNegation      bool     `json:"is_negation"`
+	OriginalMessage string     `json:"original_message"`
+	Tokens          []string   `json:"tokens"`
+	ActionWords     []string   `json:"action_words,omitempty"`
+	SentenceType    string     `json:"sentence_type,omitempty"`
+	SyntaxTree      SyntaxNode `json:"syntax_tree"`
+	Entities        Entities   `json:"entities"`
+	IsNegation      bool       `json:"is_negation"`
+}
+
+type SyntaxNode struct {
+	Type     string       `json:"type"`
+	Value    string       `json:"value,omitempty"`
+	Children []SyntaxNode `json:"children,omitempty"`
 }
 
 type Entities struct {
@@ -106,24 +115,35 @@ type Entities struct {
 }
 
 type ChatState struct {
-	ChatID               string           `json:"chat_id"`
-	CurrentFlow          string           `json:"current_flow,omitempty"`
-	UserID               uint             `json:"user_id,omitempty"`
-	SelectedDoctorID     uint             `json:"selected_doctor_id,omitempty"`
-	SelectedDoctorName   string           `json:"selected_doctor_name,omitempty"`
-	SelectedHospitalID   uint             `json:"selected_hospital_id,omitempty"`
-	SelectedHospitalName string           `json:"selected_hospital_name,omitempty"`
-	SelectedSpecialty    string           `json:"selected_specialization,omitempty"`
-	SelectedDate         string           `json:"selected_date,omitempty"`
-	SelectedTime         string           `json:"selected_time,omitempty"`
-	PatientName          string           `json:"patient_name,omitempty"`
-	PatientPhone         string           `json:"patient_phone,omitempty"`
-	PatientEmail         string           `json:"patient_email,omitempty"`
-	Awaiting             string           `json:"awaiting,omitempty"`
-	PendingDoctors       []DoctorSummary  `json:"pending_doctors,omitempty"`
-	PendingSchedules     []ScheduleOption `json:"pending_schedules,omitempty"`
-	PendingTimeSlots     []TimeSlotOption `json:"pending_time_slots,omitempty"`
-	UpdatedAt            time.Time        `json:"updated_at"`
+	ChatID               string            `json:"chat_id"`
+	CurrentFlow          string            `json:"current_flow,omitempty"`
+	UserID               uint              `json:"user_id,omitempty"`
+	SelectedDoctorID     uint              `json:"selected_doctor_id,omitempty"`
+	SelectedDoctorName   string            `json:"selected_doctor_name,omitempty"`
+	SelectedHospitalID   uint              `json:"selected_hospital_id,omitempty"`
+	SelectedHospitalName string            `json:"selected_hospital_name,omitempty"`
+	SelectedSpecialty    string            `json:"selected_specialization,omitempty"`
+	SelectedDate         string            `json:"selected_date,omitempty"`
+	SelectedTime         string            `json:"selected_time,omitempty"`
+	PatientComplaint     string            `json:"patient_complaint,omitempty"`
+	PatientName          string            `json:"patient_name,omitempty"`
+	PatientPhone         string            `json:"patient_phone,omitempty"`
+	PatientEmail         string            `json:"patient_email,omitempty"`
+	Awaiting             string            `json:"awaiting,omitempty"`
+	PendingIntent        Intent            `json:"pending_intent,omitempty"`
+	PendingHospitals     []HospitalSummary `json:"pending_hospitals,omitempty"`
+	PendingDoctors       []DoctorSummary   `json:"pending_doctors,omitempty"`
+	PendingSchedules     []ScheduleOption  `json:"pending_schedules,omitempty"`
+	PendingTimeSlots     []TimeSlotOption  `json:"pending_time_slots,omitempty"`
+	UpdatedAt            time.Time         `json:"updated_at"`
+}
+
+type HospitalSummary struct {
+	ID          uint   `json:"id"`
+	Name        string `json:"name"`
+	Address     string `json:"address"`
+	City        string `json:"city"`
+	PhoneNumber string `json:"phone_number,omitempty"`
 }
 
 type DoctorSummary struct {

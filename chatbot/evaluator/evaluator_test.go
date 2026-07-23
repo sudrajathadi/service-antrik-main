@@ -36,17 +36,50 @@ func TestParseSelectionNumber(t *testing.T) {
 	}
 }
 
+func TestMatchHospitalUnderstandsBranchNumber(t *testing.T) {
+	hospitals := []models.Hospital{
+		{Name: "RS Primaya Tangerang", City: "Tangerang"},
+		{Name: "RS Primaya Tangerang Cabang 2 Tangerang", City: "Tangerang"},
+	}
+
+	hospital := matchHospital(hospitals, "primaya tangerang 2", "siapa dokter di rs primaya tangerang 2")
+	if hospital == nil {
+		t.Fatal("expected hospital to be matched")
+	}
+	if hospital.Name != "RS Primaya Tangerang Cabang 2 Tangerang" {
+		t.Fatalf("expected branch hospital, got %q", hospital.Name)
+	}
+}
+
+func TestShouldInterruptBookingFlowForNewHospitalDoctorQuestion(t *testing.T) {
+	state := ChatState{CurrentFlow: flowBooking, Awaiting: awaitingComplaint}
+
+	if !shouldInterruptBookingFlow(state, IntentFindDoctorByHospital) {
+		t.Fatal("expected new hospital doctor question to interrupt active booking flow")
+	}
+}
+
+func TestShouldNotInterruptBookingFlowForUnknownComplaint(t *testing.T) {
+	state := ChatState{CurrentFlow: flowBooking, Awaiting: awaitingComplaint}
+
+	if shouldInterruptBookingFlow(state, IntentUnknown) {
+		t.Fatal("expected unknown complaint text to continue active booking flow")
+	}
+}
+
 func TestBookingSuccessMessageIncludesPatientDetails(t *testing.T) {
 	state := ChatState{
 		SelectedDoctorName:   "drg. Galih Rahmawati",
 		SelectedHospitalName: "RS Mitra Keluarga Bekasi",
 		SelectedDate:         "2026-07-20",
 		SelectedTime:         "08:00",
+		PatientComplaint:     "sakit gigi sejak 2 hari",
 	}
 	reply := bookingSuccessMessage(models.Appointment{Base: models.Base{ID: 7}}, state, "Sudrajat Hadi Susanto", "087775845951", "ajat5@gmail.com")
 
 	for _, expected := range []string{
 		"Nomor appointment: 7",
+		"Keluhan: sakit gigi sejak 2 hari",
 		"Data pasien:",
 		"Nama: Sudrajat Hadi Susanto",
 		"Telepon: 087775845951",

@@ -9,9 +9,9 @@ Perkembangan layanan kesehatan digital mendorong rumah sakit dan klinik untuk me
 
 Topik kerja praktik ini berada pada area Natural Language Processing (NLP), khususnya pemrosesan teks bahasa Indonesia untuk mengubah pesan pasien menjadi intent dan entity yang dapat diproses oleh sistem booking. NLP berperan untuk memecah pesan menjadi token, membaca pola kalimat, mengambil entity seperti nama rumah sakit, kota, dokter, tanggal, dan jam, lalu menerjemahkannya menjadi intent seperti list rumah sakit, detail rumah sakit, pencarian dokter, pengecekan jadwal, dan booking dokter. Kajian NLP terbaru menunjukkan bahwa NLP digunakan untuk merepresentasikan dan menganalisis bahasa manusia secara komputasional pada berbagai aplikasi, termasuk question answering, information extraction, dan domain medis (Khurana dkk., 2023).
 
-Project Chatbot Antrik dikembangkan untuk mempermudah alur pencarian informasi dan booking dokter dengan pendekatan rule-based NLP buatan sendiri. Sistem tidak menggunakan layanan workflow automation eksternal maupun model percakapan pihak ketiga untuk memproses chat. Sebagai gantinya, backend Go menyediakan satu endpoint chat yang menjalankan pipeline tokenizer, parser, translator, dan evaluator. Tokenizer menormalisasi pesan user, parser mengambil entity, translator menentukan intent, dan evaluator menjalankan aturan bisnis berdasarkan intent tersebut. Dengan pendekatan ini, proses pengambilan keputusan chatbot menjadi lebih deterministik, mudah diuji, dan mudah dijelaskan dalam laporan kerja praktik.
+Project Chatbot Antrik dikembangkan untuk mempermudah alur pencarian informasi dan booking dokter dengan pendekatan rule-based NLP buatan sendiri. Sistem tidak menggunakan layanan workflow automation eksternal maupun model percakapan pihak ketiga untuk memproses chat. Sebagai gantinya, backend Go menyediakan satu endpoint chat yang menjalankan pipeline scanner/tokenizer, parser, pohon sintaks, translator, dan evaluator. Scanner/tokenizer menormalisasi pesan user, parser mengambil entity, pohon sintaks menyusun struktur kalimat, translator menentukan intent, dan evaluator menjalankan aturan bisnis berdasarkan intent tersebut. Dengan pendekatan ini, proses pengambilan keputusan chatbot menjadi lebih deterministik, mudah diuji, dan mudah dijelaskan dalam laporan kerja praktik.
 
-Revisi kebutuhan sistem membuat ruang lingkup project lebih fokus pada pemrosesan bahasa alami yang terkontrol. Chatbot tidak melakukan penilaian medis atau rekomendasi klinis. Chatbot hanya membantu navigasi layanan berdasarkan data yang tersedia, seperti menampilkan daftar rumah sakit berdasarkan kota, menampilkan detail atau lokasi rumah sakit, menampilkan dokter pada rumah sakit tertentu, menampilkan dokter berdasarkan spesialisasi yang disebutkan user, mengecek jadwal dokter pada tanggal tertentu, dan membuat appointment setelah pasien memilih dokter, jadwal, jam, serta mengisi data pasien.
+Revisi kebutuhan sistem membuat ruang lingkup project lebih fokus pada pemrosesan bahasa alami yang terkontrol. Chatbot tidak melakukan penilaian medis atau rekomendasi klinis. Chatbot hanya membantu navigasi layanan berdasarkan data yang tersedia, seperti menampilkan daftar rumah sakit berdasarkan kota, menampilkan detail atau lokasi rumah sakit, menampilkan dokter pada rumah sakit tertentu, menampilkan dokter berdasarkan spesialisasi yang disebutkan user, mengecek jadwal dokter pada tanggal tertentu, dan membuat appointment setelah pasien memilih dokter, jadwal, jam, mengisi keluhan, serta mengisi data pasien.
 
 Gap yang menjadi dasar pengembangan project ini adalah perlunya chatbot booking dokter yang dapat menerima bahasa alami sederhana, tetapi tetap menghasilkan aksi sistem yang terstruktur. Hal ini sejalan dengan penelitian intent recognition pada conversational AI yang menekankan bahwa Natural Language Understanding mengubah bahasa alami menjadi data terstruktur melalui intent classification dan entity extraction (Chandrakala dkk., 2023). Dalam konteks project ini, pesan seperti "rumah sakit di Tangerang ada apa saja", "detail rumah sakit RSUP Nasional", "dokter di rumah sakit Bunda Margonda Depok", atau "jadwal dokter Budi besok" harus dapat diubah menjadi query backend yang sesuai.
 
@@ -24,7 +24,7 @@ Rumusan masalah dalam kerja praktik ini adalah:
 1. Bagaimana merancang chatbot berbasis NLP yang dapat memahami pesan bahasa Indonesia sederhana untuk kebutuhan informasi rumah sakit dan booking dokter?
 2. Bagaimana membangun tokenizer, parser, translator, dan evaluator buatan sendiri untuk mengubah pesan user menjadi intent dan entity terstruktur?
 3. Bagaimana mengintegrasikan chatbot dengan data rumah sakit, dokter, jadwal, dan appointment agar respons berasal dari data aktual pada database?
-4. Bagaimana merancang flow booking bertahap dengan pilihan nomor dokter, pilihan jadwal, pilihan jam, dan input data pasien?
+4. Bagaimana merancang flow booking bertahap dengan pilihan nomor dokter, pilihan jadwal, pilihan jam, input keluhan pasien, dan input data pasien?
 5. Bagaimana menyimpan state dan history percakapan menggunakan Redis agar percakapan tetap konsisten dan dapat dibuka kembali?
 
 ### 1.3 Batasan Masalah
@@ -116,29 +116,47 @@ Pada domain kesehatan, penelitian NLP dalam emergency medicine dan clinical pati
 
 Natural Language Processing adalah bidang kecerdasan buatan yang memproses bahasa manusia agar dapat dipahami dan digunakan oleh sistem komputer. Pada project ini, NLP diterapkan untuk memproses pesan bahasa Indonesia dari user. Tahapannya meliputi normalisasi teks, tokenisasi, parsing entity, translasi intent, dan evaluasi aturan bisnis. Pendekatan yang digunakan bersifat rule-based sehingga keputusan sistem dapat dilacak dan dijelaskan.
 
-#### 2.3.2 Tokenisasi
+#### 2.3.2 Scanner dan Tokenisasi
 
-Tokenisasi adalah proses memecah teks menjadi unit kata atau token yang lebih mudah diproses. Dalam sistem ini, tokenizer mengubah pesan menjadi huruf kecil, membersihkan karakter yang tidak dibutuhkan, memisahkan kata, dan mengganti sinonim sederhana. Contohnya, kata "rs" dinormalisasi menjadi "rumah sakit" dan kata "reservasi" diarahkan ke token booking. Token hasil normalisasi menjadi input untuk parser dan translator.
+Scanner adalah tahap awal untuk membaca input user dan mengubahnya menjadi token. Tokenisasi adalah proses memecah teks menjadi unit kata atau token yang lebih mudah diproses. Dalam sistem ini, scanner/tokenizer mengubah pesan menjadi huruf kecil, membersihkan karakter yang tidak dibutuhkan, memisahkan kata, dan mengganti sinonim sederhana. Contohnya, kata "rs" dinormalisasi menjadi "rumah sakit" dan kata "reservasi" diarahkan ke token booking. Token hasil normalisasi menjadi input untuk parser dan translator.
 
 #### 2.3.3 Parsing Entity
 
 Parsing entity adalah proses membaca informasi penting dari token atau pola teks. Parser pada project ini mengambil entity seperti `doctor_name`, `hospital_name`, `location`, `specialization`, `date`, dan `time`. Contohnya, kalimat "jadwal dokter Budi besok" dapat menghasilkan entity dokter "budi" dan tanggal dalam format `YYYY-MM-DD`. Prinsip ini sejalan dengan konsep entity extraction pada NLP dan Named Entity Recognition, tetapi diterapkan dengan rule sederhana agar sesuai kebutuhan sistem.
 
-#### 2.3.4 Intent Classification / Translator
+#### 2.3.4 Pohon Sintaks dan Tipe Kalimat
 
-Intent classification adalah proses menentukan maksud user dari pesan yang dikirim. Pada project ini, translator menjalankan daftar rule intent secara berurutan. Intent yang didukung antara lain `LIST_HOSPITALS`, `ASK_HOSPITAL_LOCATION`, `FIND_DOCTOR_BY_HOSPITAL`, `FIND_DOCTOR_BY_SPECIALIZATION`, `ASK_DOCTOR_SCHEDULE`, dan `BOOK_APPOINTMENT`. Setiap intent memiliki confidence sederhana agar response API tetap dapat menunjukkan tingkat keyakinan rule.
+Pohon sintaks adalah struktur hasil parsing yang memperlihatkan bagian-bagian kalimat secara bertingkat. Pada project ini, pohon sintaks memiliki root `KALIMAT`, lalu memiliki node seperti `TIPE_KALIMAT`, `TOKEN`, `AKSI`, `ENTITY`, dan `KONTEKS`. Tipe kalimat digunakan untuk memberi label konteks input, misalnya `PERTANYAAN`, `PERINTAH`, `PERMINTAAN_BOOKING`, `PILIHAN_NOMOR`, `DATA_PASIEN`, `SAPAAN`, atau `PEMBATALAN`.
 
-#### 2.3.5 Evaluator dan Rule-Based Dialogue Flow
+#### 2.3.5 Jenis Kata Tanya
 
-Evaluator adalah komponen yang menjalankan intent menjadi aksi sistem. Evaluator membaca state percakapan, memanggil repository atau API internal, menyusun response, dan menyimpan state baru. Pada flow booking, evaluator menampilkan daftar dokter bernomor, menerima pilihan dokter, menampilkan pilihan jadwal, menerima pilihan jam, meminta data pasien, lalu membuat appointment. Karena berbasis rule, alur ini lebih mudah diuji dibandingkan sistem generatif bebas.
+Pada referensi contoh aplikasi pengolah bahasa alami, pertanyaan dikelompokkan berdasarkan kata tanya seperti `apa`, `dimana`, `kapan`, `jam berapa`, dan `berapa`. Pola tersebut digunakan sebagai acuan pada Chatbot Antrik, tetapi disesuaikan dengan domain informasi rumah sakit dan booking dokter. Dengan demikian, chatbot tidak menjawab semua jenis pertanyaan umum, melainkan hanya pertanyaan yang berhubungan dengan data rumah sakit, dokter, spesialisasi, jadwal, slot, dan appointment.
 
-#### 2.3.6 Appointment Scheduling
+Jenis pertanyaan yang digunakan pada project ini adalah:
 
-Appointment scheduling adalah pengelolaan janji temu berdasarkan dokter, rumah sakit, tanggal, jam, dan ketersediaan slot. Dalam project ini, jadwal dokter memiliki hari praktik, jam mulai, jam selesai, dan interval slot. Saat user menanyakan jadwal dokter pada tanggal tertentu, sistem mengambil appointment yang sudah ada untuk dokter dan tanggal tersebut, lalu menandai slot yang sudah terisi sebagai `booked=true`. Appointment baru dibuat dengan status awal `pending`.
+| Jenis Pertanyaan | Fungsi Bahasa | Penerapan pada Chatbot |
+|---|---|---|
+| `Apa` / `apa saja` | Menanyakan daftar atau jenis data. | Menampilkan daftar rumah sakit, daftar spesialisasi, atau dokter yang tersedia. |
+| `Dimana` | Menanyakan lokasi. | Menampilkan lokasi atau alamat rumah sakit. |
+| `Siapa` | Menanyakan orang atau pihak yang tersedia. | Menampilkan dokter pada rumah sakit atau spesialisasi tertentu. |
+| `Kapan` | Menanyakan waktu atau tanggal. | Menampilkan jadwal dokter jika user menyebut dokter dan tanggal. |
+| `Jam berapa` | Menanyakan waktu dalam bentuk jam. | Menampilkan slot jam dokter pada tanggal tertentu. |
 
-#### 2.3.7 Redis Memory
+#### 2.3.6 Intent Classification / Translator
 
-Redis digunakan untuk menyimpan state percakapan dan history chat berdasarkan `chat_id`. State percakapan dipakai agar sistem mengetahui tahapan booking yang sedang berlangsung, misalnya menunggu pilihan dokter, pilihan jadwal, pilihan jam, atau data pasien. History chat disimpan agar percakapan dapat dibuka kembali setelah service restart.
+Intent classification adalah proses menentukan maksud user dari pesan yang dikirim. Pada project ini, translator menjalankan daftar rule intent secara berurutan. Intent yang didukung antara lain `LIST_HOSPITALS`, `ASK_HOSPITAL_LOCATION`, `LIST_SPECIALIZATIONS`, `LIST_SPECIALIZATIONS_BY_HOSPITAL`, `FIND_DOCTOR_BY_HOSPITAL`, `FIND_DOCTOR_BY_SPECIALIZATION`, `ASK_DOCTOR_SCHEDULE`, dan `BOOK_APPOINTMENT`. Setiap intent memiliki confidence sederhana agar response API tetap dapat menunjukkan tingkat keyakinan rule.
+
+#### 2.3.7 Evaluator dan Rule-Based Dialogue Flow
+
+Evaluator adalah komponen yang menjalankan intent menjadi aksi sistem. Evaluator membaca state percakapan, memanggil repository atau API internal, menyusun response, dan menyimpan state baru. Pada flow booking, evaluator menampilkan daftar dokter bernomor, menerima pilihan dokter, menampilkan pilihan jadwal, menerima pilihan jam, meminta keluhan pasien, meminta data pasien, lalu membuat appointment. Karena berbasis rule, alur ini lebih mudah diuji dibandingkan sistem generatif bebas.
+
+#### 2.3.8 Appointment Scheduling
+
+Appointment scheduling adalah pengelolaan janji temu berdasarkan dokter, rumah sakit, tanggal, jam, keluhan pasien, dan ketersediaan slot. Dalam project ini, jadwal dokter memiliki hari praktik, jam mulai, jam selesai, dan interval slot. Saat user menanyakan jadwal dokter pada tanggal tertentu, sistem mengambil appointment yang sudah ada untuk dokter dan tanggal tersebut, lalu menandai slot yang sudah terisi sebagai `booked=true`. Appointment baru dibuat dengan status awal `pending`, sedangkan keluhan pasien disimpan pada field `symptoms_note` sebagai catatan appointment.
+
+#### 2.3.9 Redis Memory
+
+Redis digunakan untuk menyimpan state percakapan dan history chat berdasarkan `chat_id`. State percakapan dipakai agar sistem mengetahui tahapan booking yang sedang berlangsung, misalnya menunggu pilihan dokter, pilihan jadwal, pilihan jam, keluhan pasien, atau data pasien. History chat disimpan agar percakapan dapat dibuka kembali setelah service restart.
 
 ### 2.4 Referensi Ilmiah
 
@@ -181,7 +199,7 @@ Deskripsi pekerjaan teknis:
 | 3 | Merancang database | Menentukan entitas utama seperti hospitals, specializations, doctors, doctor_schedules, users, dan appointments. |
 | 4 | Menyimpan state dan history | Menggunakan Redis untuk menyimpan state booking dan riwayat percakapan berdasarkan chat id. |
 | 5 | Mengembangkan frontend | Menyediakan halaman chatroom untuk pasien dan halaman bulk upload untuk pengelolaan data. |
-| 6 | Menguji alur booking | Menguji intent, entity, pemilihan dokter, pemilihan jadwal, pemilihan jam, input data pasien, dan pembuatan appointment. |
+| 6 | Menguji alur booking | Menguji intent, entity, pemilihan dokter, pemilihan jadwal, pemilihan jam, input keluhan pasien, input data pasien, dan pembuatan appointment. |
 
 Aspek non-teknis yang diperhatikan:
 
@@ -189,7 +207,7 @@ Aspek non-teknis yang diperhatikan:
 2. Chatbot perlu bertanya bertahap agar pasien tidak merasa sedang mengisi formulir panjang.
 3. Chatbot harus menjaga kepercayaan pasien dengan tidak mengarang nama dokter, jadwal, rumah sakit, atau slot.
 4. Chatbot tidak boleh memberi penilaian medis atau saran klinis.
-5. Appointment dibuat setelah pasien memilih dokter, jadwal, jam, dan mengisi data pasien lengkap.
+5. Appointment dibuat setelah pasien memilih dokter, jadwal, jam, mengisi keluhan, dan mengisi data pasien lengkap.
 6. Sistem harus mudah dijelaskan kepada dosen dan pihak operasional karena alur rule-based dapat ditelusuri dari kode.
 
 #### 3.1.2 Analisis Pelaksanaan Kerja Praktik
@@ -209,7 +227,7 @@ Kesesuaian dengan kerangka acuan:
 Perbedaan antara rencana dan pelaksanaan:
 
 1. Pada sistem produksi, data dokter dan jadwal biasanya berasal dari sistem internal yang sudah berjalan. Pada project ini, data uji menggunakan CSV template dan dummy data agar proses pengembangan dapat dilakukan secara mandiri.
-2. Pada rencana awal, chatbot diarahkan untuk memahami keluhan medis pasien. Setelah revisi, bagian tersebut dihapus karena membutuhkan validasi klinis dan pengetahuan medis khusus.
+2. Pada rencana awal, chatbot diarahkan untuk memahami keluhan medis pasien sebagai dasar rekomendasi. Setelah revisi, bagian tersebut dihapus karena membutuhkan validasi klinis dan pengetahuan medis khusus. Keluhan pasien hanya dicatat sebagai `symptoms_note` pada appointment, bukan dianalisis untuk menentukan diagnosis, triase, atau rekomendasi klinis.
 3. Pada rencana awal, pemrosesan chat bergantung pada layanan eksternal. Setelah revisi, seluruh pemrosesan chat dipindahkan ke backend Go dengan pipeline NLP buatan sendiri.
 4. Pada sistem bisnis lengkap, admin biasanya memiliki dashboard CRUD penuh. Pada project ini, pengelolaan data difokuskan pada bulk upload CSV dan Google Spreadsheet untuk mempercepat pengisian data master.
 
@@ -272,7 +290,7 @@ Prinsip solusi:
 2. Data aktual harus berasal dari database melalui backend.
 3. Intent dan entity ditentukan oleh rule yang dapat diuji.
 4. Jadwal dokter harus dicek berdasarkan `doctor_id` dan tanggal.
-5. Appointment dibuat setelah pasien memilih dokter, jadwal, jam, dan mengirim data pasien lengkap.
+5. Appointment dibuat setelah pasien memilih dokter, jadwal, jam, mengirim keluhan, dan mengirim data pasien lengkap.
 6. Admin dapat mengisi data master melalui CSV atau Google Spreadsheet.
 
 ### 3.2 Use Case Diagram
@@ -297,8 +315,9 @@ rectangle "Chatbot Antrik" {
   usecase "Melihat jadwal dokter" as UC7
   usecase "Memilih dokter" as UC8
   usecase "Memilih jadwal dan jam" as UC9
-  usecase "Mengisi data pasien" as UC10
-  usecase "Menerima hasil appointment" as UC11
+  usecase "Mengisi keluhan pasien" as UC10
+  usecase "Mengisi data pasien" as UC11
+  usecase "Menerima hasil appointment" as UC15
   usecase "Bulk upload data master" as UC12
   usecase "Download template CSV" as UC13
   usecase "Menyimpan state dan history" as UC14
@@ -314,6 +333,7 @@ Pasien --> UC8
 Pasien --> UC9
 Pasien --> UC10
 Pasien --> UC11
+Pasien --> UC15
 
 Admin --> UC12
 Admin --> UC13
@@ -324,7 +344,7 @@ API --> UC4
 API --> UC5
 API --> UC6
 API --> UC7
-API --> UC11
+API --> UC15
 API --> UC12
 API --> UC13
 API --> UC14
@@ -337,20 +357,23 @@ Redis --> UC14
 | Kode | Kebutuhan Fungsional | Aktor | Prioritas |
 |---|---|---|---|
 | F-01 | Sistem menerima pesan pasien melalui endpoint `POST /api/chat`. | Pasien | Tinggi |
-| F-02 | Sistem melakukan tokenisasi pesan user. | Backend API | Tinggi |
+| F-02 | Sistem melakukan scanner/tokenisasi pesan user. | Backend API | Tinggi |
 | F-03 | Sistem melakukan parsing entity seperti rumah sakit, kota, dokter, spesialisasi, tanggal, dan jam. | Backend API | Tinggi |
-| F-04 | Sistem menerjemahkan hasil parsing menjadi intent. | Backend API | Tinggi |
-| F-05 | Sistem menjalankan evaluator sesuai intent. | Backend API | Tinggi |
-| F-06 | Sistem menampilkan list rumah sakit, termasuk filter berdasarkan kota. | Pasien | Tinggi |
-| F-07 | Sistem menampilkan detail atau lokasi rumah sakit. | Pasien | Tinggi |
-| F-08 | Sistem menampilkan dokter berdasarkan rumah sakit atau spesialisasi. | Pasien | Tinggi |
-| F-09 | Sistem menampilkan jadwal dokter berdasarkan doctor_id dan tanggal. | Pasien | Tinggi |
-| F-10 | Sistem menandai slot yang sudah terisi sebagai `booked=true`. | Backend API | Tinggi |
-| F-11 | Sistem meminta data pasien berupa nama, telepon, dan email. | Pasien | Tinggi |
-| F-12 | Sistem membuat appointment melalui repository/backend. | Backend API | Tinggi |
-| F-13 | Sistem mengatur status appointment awal sebagai `pending`. | Backend API | Tinggi |
-| F-14 | Sistem menyimpan state booking dan history chat di Redis. | Backend API | Tinggi |
-| F-15 | Sistem menyediakan upload CSV dan download template untuk data master. | Admin | Sedang |
+| F-04 | Sistem membentuk pohon sintaks dan tipe kalimat dari hasil parsing. | Backend API | Tinggi |
+| F-05 | Sistem menerjemahkan hasil parsing menjadi intent. | Backend API | Tinggi |
+| F-06 | Sistem menjalankan evaluator sesuai intent. | Backend API | Tinggi |
+| F-07 | Sistem menampilkan list rumah sakit, termasuk filter berdasarkan kota. | Pasien | Tinggi |
+| F-08 | Sistem menampilkan detail atau lokasi rumah sakit. | Pasien | Tinggi |
+| F-09 | Sistem menampilkan spesialisasi berdasarkan rumah sakit. | Pasien | Tinggi |
+| F-10 | Sistem menampilkan dokter berdasarkan rumah sakit atau spesialisasi. | Pasien | Tinggi |
+| F-11 | Sistem menampilkan jadwal dokter berdasarkan doctor_id dan tanggal. | Pasien | Tinggi |
+| F-12 | Sistem menandai slot yang sudah terisi sebagai `booked=true`. | Backend API | Tinggi |
+| F-13 | Sistem meminta keluhan pasien untuk disimpan sebagai `symptoms_note`. | Pasien | Tinggi |
+| F-14 | Sistem meminta data pasien berupa nama, telepon, dan email. | Pasien | Tinggi |
+| F-15 | Sistem membuat appointment melalui repository/backend. | Backend API | Tinggi |
+| F-16 | Sistem mengatur status appointment awal sebagai `pending`. | Backend API | Tinggi |
+| F-17 | Sistem menyimpan state booking dan history chat di Redis. | Backend API | Tinggi |
+| F-18 | Sistem menyediakan upload CSV dan download template untuk data master. | Admin | Sedang |
 
 #### 3.2.2 Kebutuhan Non-Fungsional
 
@@ -372,7 +395,7 @@ Redis --> UC14
 | Aktor utama | Pasien |
 | Aktor pendukung | Backend API, Redis |
 | Prasyarat | Data dokter, rumah sakit, spesialisasi, dan jadwal sudah tersedia. |
-| Alur utama | Pasien mengirim pesan, backend melakukan tokenisasi, parser mengambil entity, translator menentukan intent, evaluator menampilkan dokter, pasien memilih dokter, evaluator menampilkan jadwal, pasien memilih jam, chatbot meminta data pasien, backend membuat appointment, chatbot menampilkan hasil appointment. |
+| Alur utama | Pasien mengirim pesan, backend melakukan tokenisasi, parser mengambil entity, translator menentukan intent, evaluator menampilkan dokter, pasien memilih dokter, evaluator menampilkan jadwal, pasien memilih jam, chatbot meminta keluhan pasien, chatbot meminta data pasien, backend membuat appointment, chatbot menampilkan hasil appointment. |
 | Alur alternatif | Jika rumah sakit/dokter/jadwal tidak ditemukan, chatbot memberi pesan fallback dan meminta user memperbaiki input. Jika slot penuh, chatbot meminta pasien memilih jadwal atau dokter lain. |
 | Hasil akhir | Appointment tersimpan dengan status `pending` atau pasien mendapat informasi data tidak tersedia. |
 
@@ -389,17 +412,19 @@ Redis --> UC14
 
 Struktur chatbot dibuat sebagai pipeline berurutan agar setiap tahap mudah dijelaskan, diuji, dan dipresentasikan. Satu pesan dari user tidak langsung diproses sebagai jawaban, tetapi melewati beberapa tahap berikut:
 
-1. Tokenizer: menormalisasi pesan dan memecahnya menjadi token.
+1. Scanner/Tokenizer: menormalisasi pesan dan memecahnya menjadi token.
 2. Parser: mengambil entity penting dari token, seperti rumah sakit, kota, dokter, spesialisasi, tanggal, dan jam.
-3. Translator: menentukan intent berdasarkan rule yang cocok.
-4. Evaluator: menjalankan intent menjadi aksi sistem, mengambil data dari repository, menyimpan state Redis, dan menyusun response chatbot.
+3. Pohon sintaks: menyusun struktur kalimat dari token, aksi, entity, tipe kalimat, dan konteks.
+4. Translator: menentukan intent berdasarkan rule yang cocok.
+5. Evaluator: menjalankan intent menjadi aksi sistem, mengambil data dari repository, menyimpan state Redis, dan menyusun response chatbot.
 
 Alur sederhana pipeline:
 
 ```text
 Pesan User
-  -> Tokenizer
+  -> Scanner/Tokenizer
   -> Parser
+  -> Pohon Sintaks
   -> Translator
   -> Evaluator
   -> Response Chatbot
@@ -407,16 +432,40 @@ Pesan User
 
 Contoh pemrosesan:
 
-| Input User | Token Penting | Entity | Intent | Output Sistem |
-|---|---|---|---|---|
-| "rumah sakit di Tangerang ada apa saja" | rumah, sakit, di, tangerang | location=tangerang | LIST_HOSPITALS | Menampilkan rumah sakit di Tangerang. |
-| "alamat rumah sakit RSUP Nasional" | lokasi, rumah, sakit, rsup, nasional | hospital_name=rsup nasional | ASK_HOSPITAL_LOCATION | Menampilkan alamat rumah sakit. |
-| "dokter di rumah sakit bunda margonda depok" | dokter, rumah, sakit, bunda, margonda, depok | hospital_name=bunda margonda, location=depok | FIND_DOCTOR_BY_HOSPITAL | Menampilkan dokter pada rumah sakit tersebut. |
-| "dokter anak" | dokter, anak | specialization=anak | FIND_DOCTOR_BY_SPECIALIZATION | Menampilkan dokter spesialis anak. |
-| "jadwal dokter budi besok" | jadwal, dokter, budi, besok | doctor_name=budi, date=YYYY-MM-DD | ASK_DOCTOR_SCHEDULE | Menampilkan jadwal dokter pada tanggal tersebut. |
-| "booking dokter gigi" | booking, dokter, gigi | specialization=gigi | BOOK_APPOINTMENT | Memulai alur booking dokter. |
-| "2" | 2 | pilihan nomor | Flow state | Memilih dokter, jadwal, atau jam sesuai state aktif. |
-| "Nama: Budi Phone: 0812 Email: budi@mail.com" | nama, phone, email | data pasien | Flow state | Membuat atau memperbarui user dan appointment. |
+| Input User | Token Penting | Tipe Kalimat | Entity | Intent | Output Sistem |
+|---|---|---|---|---|---|
+| "rumah sakit di Tangerang ada apa saja" | rumah, sakit, di, tangerang | PERTANYAAN | location=tangerang | LIST_HOSPITALS | Menampilkan rumah sakit di Tangerang. |
+| "alamat rumah sakit RSUP Nasional" | lokasi, rumah, sakit, rsup, nasional | PERINTAH | hospital_name=rsup nasional | ASK_HOSPITAL_LOCATION | Menampilkan alamat rumah sakit. |
+| "dokter di rumah sakit bunda margonda depok" | dokter, rumah, sakit, bunda, margonda, depok | PERNYATAAN | hospital_name=bunda margonda, location=depok | FIND_DOCTOR_BY_HOSPITAL | Menampilkan dokter pada rumah sakit tersebut. |
+| "dokter anak" | dokter, anak | PERNYATAAN | specialization=anak | FIND_DOCTOR_BY_SPECIALIZATION | Menampilkan dokter spesialis anak. |
+| "jadwal dokter budi besok" | jadwal, dokter, budi, besok | PERINTAH | doctor_name=budi, date=YYYY-MM-DD | ASK_DOCTOR_SCHEDULE | Menampilkan jadwal dokter pada tanggal tersebut. |
+| "booking dokter gigi" | booking, dokter, gigi | PERMINTAAN_BOOKING | specialization=gigi | BOOK_APPOINTMENT | Memulai alur booking dokter. |
+| "2" | 2 | PILIHAN_NOMOR | pilihan nomor | Flow state | Memilih dokter, jadwal, atau jam sesuai state aktif. |
+| "sakit gigi sejak 2 hari" | sakit, gigi, sejak, 2, hari | KELUHAN | keluhan pasien | Flow state | Menyimpan keluhan ke state untuk `symptoms_note`. |
+| "Nama: Budi Phone: 0812 Email: budi@mail.com" | nama, phone, email | DATA_PASIEN | data pasien | Flow state | Membuat atau memperbarui user dan appointment. |
+
+Contoh pohon sintaks untuk input "jadwal dokter budi besok":
+
+```text
+KALIMAT
+├── TIPE_KALIMAT: PERINTAH
+├── TOKEN
+│   ├── KATA: jadwal
+│   ├── KATA: dokter
+│   ├── KATA: budi
+│   └── KATA: besok
+├── AKSI
+│   └── KATA_AKSI: jadwal
+├── ENTITY
+│   ├── DOKTER: budi
+│   ├── TANGGAL_TEXT: besok
+│   └── TANGGAL: YYYY-MM-DD
+└── KONTEKS
+    ├── NEGASI: false
+    └── KONTEKS_WAKTU: YYYY-MM-DD
+```
+
+Pohon sintaks tersebut menunjukkan bahwa sistem tidak hanya membaca token, tetapi juga mengidentifikasi aksi, entity, tipe kalimat, dan konteks. Hasil ini kemudian diteruskan ke translator untuk menentukan intent `ASK_DOCTOR_SCHEDULE`.
 
 #### 3.2.5 Daftar Intent Chatbot
 
@@ -429,6 +478,7 @@ Intent adalah label maksud pesan user yang dipakai evaluator untuk menentukan ak
 | `LIST_HOSPITALS` | Menampilkan daftar rumah sakit, opsional berdasarkan kota. | Pertanyaan list atau keberadaan rumah sakit. | "rumah sakit di depok", "tampilkan rumah sakit di tangerang" |
 | `ASK_HOSPITAL_LOCATION` | Menampilkan detail alamat atau lokasi rumah sakit. | Pertanyaan lokasi, alamat, detail, atau profil rumah sakit. | "alamat rumah sakit RSUP Nasional", "lokasi rumah sakit hermina depok" |
 | `LIST_SPECIALIZATIONS` | Menampilkan daftar spesialisasi yang tersedia. | Pertanyaan daftar spesialisasi. | "list spesialisasi", "spesialisasi apa saja" |
+| `LIST_SPECIALIZATIONS_BY_HOSPITAL` | Menampilkan spesialisasi yang tersedia pada rumah sakit tertentu. | Pertanyaan spesialisasi berdasarkan rumah sakit. | "ada apa saja spesialisasi di rumah sakit Bunda Margonda Depok" |
 | `ASK_DOCTOR` | Menanyakan dokter secara umum. | Pertanyaan dokter tanpa filter jelas. | "ada dokter siapa saja", "cari dokter" |
 | `FIND_DOCTOR_BY_SPECIALIZATION` | Menampilkan dokter berdasarkan spesialisasi. | Pertanyaan dokter dengan kata spesialisasi. | "dokter anak", "dokter gigi", "dokter jantung" |
 | `FIND_DOCTOR_BY_HOSPITAL` | Menampilkan dokter berdasarkan rumah sakit. | Pertanyaan dokter pada rumah sakit tertentu. | "dokter di rumah sakit Bunda Margonda Depok" |
@@ -438,16 +488,40 @@ Intent adalah label maksud pesan user yang dipakai evaluator untuk menentukan ak
 
 Catatan penting: intent `ASK_DOCTOR_SCHEDULE` hanya dipilih jika pesan mengandung kata jadwal dan parser berhasil membaca tanggal. Aturan ini digunakan karena sistem perlu mengetahui `doctor_id` dan tanggal untuk mengecek slot yang sudah booked.
 
-#### 3.2.6 Aturan Produksi Kalimat
+#### 3.2.6 Jenis Pertanyaan yang Dapat Dijawab
+
+Mengacu pada contoh referensi pengolah bahasa alami, chatbot perlu mengetahui kata tanya yang dipakai user. Pada project ini, kata tanya diterjemahkan menjadi intent operasional sebagai berikut:
+
+| Kata Tanya | Jenis Informasi | Intent yang Dipakai | Contoh Input | Jawaban Akhir |
+|---|---|---|---|---|
+| `Apa` / `apa saja` | Daftar rumah sakit berdasarkan kota. | `LIST_HOSPITALS` | "rumah sakit di depok ada apa saja" | Daftar rumah sakit di kota yang disebutkan. |
+| `Apa` / `apa saja` | Daftar spesialisasi yang tersedia. | `LIST_SPECIALIZATIONS` | "spesialisasi apa saja" | Daftar spesialisasi dari database. |
+| `Apa` / `apa saja` | Daftar spesialisasi pada rumah sakit tertentu. | `LIST_SPECIALIZATIONS_BY_HOSPITAL` | "ada apa saja spesialisasi di rumah sakit bunda margonda depok" | Daftar spesialisasi yang tersedia pada rumah sakit tersebut. |
+| `Apa` / `apa saja` | Daftar dokter pada rumah sakit tertentu. | `FIND_DOCTOR_BY_HOSPITAL` | "rumah sakit bunda margonda depok ada dokter apa saja" | Daftar dokter bernomor pada rumah sakit tersebut. |
+| `Dimana` | Lokasi atau alamat rumah sakit. | `ASK_HOSPITAL_LOCATION` | "dimana rumah sakit hermina depok" | Alamat, kota, dan nomor telepon rumah sakit. |
+| `Siapa` | Dokter pada rumah sakit tertentu. | `FIND_DOCTOR_BY_HOSPITAL` | "rumah sakit bunda margonda depok ada dokter siapa saja" | Daftar dokter bernomor pada rumah sakit tersebut. |
+| `Siapa` | Dokter berdasarkan spesialisasi. | `FIND_DOCTOR_BY_SPECIALIZATION` | "dokter anak siapa saja" | Daftar dokter bernomor sesuai spesialisasi. |
+| `Kapan` | Jadwal dokter pada tanggal tertentu. | `ASK_DOCTOR_SCHEDULE` | "kapan jadwal dokter budi besok" | Jadwal dokter pada tanggal hasil parsing. |
+| `Jam berapa` | Slot jam dokter pada tanggal tertentu. | `ASK_DOCTOR_SCHEDULE` | "jam berapa jadwal dokter budi besok" | Daftar slot jam dan status booked. |
+
+Tidak semua pertanyaan umum dijawab chatbot. Pertanyaan tetap dibatasi pada data operasional rumah sakit, dokter, spesialisasi, jadwal, slot, dan booking appointment. Jika kata tanya tidak dapat dipetakan ke intent yang tersedia, sistem mengembalikan fallback `UNKNOWN`.
+
+#### 3.2.7 Aturan Produksi Kalimat
 
 Aturan produksi digunakan untuk menjelaskan bentuk kalimat yang dapat dipahami chatbot. Aturan ini bukan grammar bahasa Indonesia penuh, tetapi grammar sederhana sesuai kebutuhan sistem.
 
 ```text
 <pesan> ::= <sapaan>
           | <batal>
+          | <pertanyaan_apa>
+          | <pertanyaan_dimana>
+          | <pertanyaan_siapa>
+          | <pertanyaan_kapan>
+          | <pertanyaan_jam>
           | <list_rumah_sakit>
           | <detail_rumah_sakit>
           | <list_spesialisasi>
+          | <list_spesialisasi_rs>
           | <dokter_spesialisasi>
           | <dokter_rumah_sakit>
           | <jadwal_dokter>
@@ -458,6 +532,19 @@ Aturan produksi digunakan untuk menjelaskan bentuk kalimat yang dapat dipahami c
 <sapaan> ::= "halo" | "hai" | "hello" | "pagi" | "siang" | "sore" | "malam"
 <batal> ::= "batal" | "cancel" | "batal dulu"
 
+<pertanyaan_apa> ::= <frasa_rs> <marker_lokasi> <kota> "ada apa saja"
+                   | "spesialisasi" "apa saja"
+                   | "ada apa saja" "spesialisasi" <marker_lokasi> <frasa_rs> <nama_rs> [<kota>]
+
+<pertanyaan_dimana> ::= "dimana" <frasa_rs> <nama_rs>
+                      | <kata_lokasi> <frasa_rs> <nama_rs>
+
+<pertanyaan_siapa> ::= <frasa_rs> <nama_rs> [<kota>] "ada dokter siapa saja"
+                     | "siapa" "dokter" <spesialisasi>
+
+<pertanyaan_kapan> ::= "kapan" ["jadwal"] "dokter" <nama_dokter> <tanggal>
+<pertanyaan_jam> ::= "jam berapa" "jadwal" "dokter" <nama_dokter> <tanggal>
+
 <list_rumah_sakit> ::= <kata_list> <frasa_rs> [<marker_lokasi> <kota>]
                      | <frasa_rs> <marker_lokasi> <kota> ["ada apa saja"]
 
@@ -466,6 +553,8 @@ Aturan produksi digunakan untuk menjelaskan bentuk kalimat yang dapat dipahami c
 
 <list_spesialisasi> ::= <kata_list> "spesialisasi"
                       | "spesialisasi" "apa saja"
+<list_spesialisasi_rs> ::= <kata_list> "spesialisasi" <marker_lokasi> <frasa_rs> <nama_rs> [<kota>]
+                         | "spesialisasi" <marker_lokasi> <frasa_rs> <nama_rs> "apa saja"
 
 <dokter_spesialisasi> ::= "dokter" <spesialisasi>
 <dokter_rumah_sakit> ::= "dokter" <marker_lokasi> <frasa_rs> <nama_rs> [<kota>]
@@ -494,13 +583,13 @@ Contoh penerapan aturan produksi:
 3. Input "jadwal dokter budi besok" cocok dengan `<jadwal_dokter>` dan menghasilkan intent `ASK_DOCTOR_SCHEDULE`.
 4. Input "booking dokter anak" cocok dengan `<booking>` dan menghasilkan intent `BOOK_APPOINTMENT`.
 
-#### 3.2.7 Snippet Kode Pipeline Chatbot
+#### 3.2.8 Snippet Kode Pipeline Chatbot
 
 Potongan kode berikut menunjukkan hubungan antar komponen utama chatbot. Pada endpoint chat, backend memanggil engine, lalu engine menjalankan tokenizer, parser, translator, dan evaluator secara berurutan.
 
 ```go
 func (e *Engine) Reply(req ChatRequest) (ChatResponse, error) {
-	tokens := Tokenize(req.Message)
+	tokens := Scan(req.Message)
 	parsed := Parse(req.Message, tokens)
 	intent, confidence := Translate(parsed)
 
@@ -508,7 +597,7 @@ func (e *Engine) Reply(req ChatRequest) (ChatResponse, error) {
 }
 ```
 
-Snippet tokenizer:
+Snippet scanner/tokenizer:
 
 ```go
 var TokenSynonyms = map[string]string{
@@ -522,7 +611,7 @@ var TokenSynonyms = map[string]string{
 	"dimana":      TokenLocation,
 }
 
-func Tokenize(message string) []string {
+func Scan(message string) []string {
 	normalized := normalizeMessage(message)
 	parts := strings.Fields(normalized)
 	tokens := make([]string, 0, len(parts))
@@ -537,6 +626,10 @@ func Tokenize(message string) []string {
 
 	return tokens
 }
+
+func Tokenize(message string) []string {
+	return Scan(message)
+}
 ```
 
 Snippet parser:
@@ -547,6 +640,8 @@ func Parse(message string, tokens []string) ParseResult {
 	readTokenEntities(&parsed)
 	readPatternEntities(&parsed, message, tokens)
 	normalizeHospitalAndCity(&parsed)
+	parsed.SentenceType = classifySentenceType(parsed)
+	parsed.SyntaxTree = BuildSyntaxTree(parsed)
 
 	return parsed
 }
@@ -560,12 +655,36 @@ func readPatternEntities(parsed *ParseResult, message string, tokens []string) {
 }
 ```
 
+Snippet pohon sintaks:
+
+```go
+type SyntaxNode struct {
+	Type     string       `json:"type"`
+	Value    string       `json:"value,omitempty"`
+	Children []SyntaxNode `json:"children,omitempty"`
+}
+
+func BuildSyntaxTree(parsed ParseResult) SyntaxNode {
+	return SyntaxNode{
+		Type: "KALIMAT",
+		Children: []SyntaxNode{
+			{Type: "TIPE_KALIMAT", Value: parsed.SentenceType},
+			{Type: "TOKEN", Children: buildTokenNodes(parsed.Tokens)},
+			{Type: "AKSI", Children: buildValueNodes("KATA_AKSI", parsed.ActionWords)},
+			{Type: "ENTITY", Children: buildEntityNodes(parsed.Entities)},
+			{Type: "KONTEKS", Children: buildContextNodes(parsed)},
+		},
+	}
+}
+```
+
 Snippet translator:
 
 ```go
 var intentRules = []intentRule{
 	{IntentCancelFlow, 0.95, isCancelRequest},
 	{IntentGreeting, 0.8, hasGreeting},
+	{IntentListSpecializationsByHospital, 0.92, asksSpecializationsInHospital},
 	{IntentAskHospitalLocation, 0.9, asksHospitalLocation},
 	{IntentFindDoctorByHospital, 0.92, asksDoctorsInHospital},
 	{IntentListHospitals, 0.9, isHospitalListQuestion},
@@ -650,12 +769,42 @@ func (e *Evaluator) continueBookingFlow(req ChatRequest, state ChatState, respon
 		}
 		flowResponse, err := e.selectTimeByNumber(state, response, number)
 		return true, flowResponse, err
+	case awaitingComplaint:
+		flowResponse, err := e.saveComplaint(req, state, response)
+		return true, flowResponse, err
 	case awaitingPatientDetails:
 		flowResponse, err := e.createAppointmentFromPatientDetails(req, state, response)
 		return true, flowResponse, err
 	default:
 		return false, response, nil
 	}
+}
+```
+
+Snippet penyimpanan keluhan ke appointment:
+
+```go
+func (e *Evaluator) saveComplaint(req ChatRequest, state ChatState, response ChatResponse) (ChatResponse, error) {
+	complaint := strings.TrimSpace(req.Message)
+	if complaint == "" {
+		response.NeedInput = []string{"complaint"}
+		response.Reply = "Keluhan belum terisi. Tulis singkat keluhan pasien."
+		return e.finish(response, state)
+	}
+
+	state.PatientComplaint = complaint
+	state.Awaiting = awaitingPatientDetails
+	return e.finish(response, state)
+}
+
+appointment := models.Appointment{
+	UserID:          state.UserID,
+	DoctorID:        state.SelectedDoctorID,
+	HospitalID:      state.SelectedHospitalID,
+	AppointmentDate: appointmentDate,
+	AppointmentTime: state.SelectedTime,
+	SymptomsNote:    state.PatientComplaint,
+	Status:          models.StatusPending,
 }
 ```
 
@@ -921,7 +1070,7 @@ Tabel `appointments`:
 | hospital_id | uint | not null, index, foreign key | Mengarah ke rumah sakit. |
 | appointment_date | time | not null | Tanggal kunjungan. |
 | appointment_time | varchar(5) | not null | Jam kunjungan format `HH:MM`. |
-| symptoms_note | text | nullable | Catatan opsional appointment bila tersedia. |
+| symptoms_note | text | nullable | Catatan keluhan pasien yang dikumpulkan chatbot sebelum appointment dibuat. |
 | status | varchar(20) | default pending | Status appointment: pending, confirmed, cancelled, done. |
 | created_at | timestamp | auto | Waktu data dibuat. |
 | updated_at | timestamp | auto | Waktu data diperbarui. |
@@ -954,8 +1103,9 @@ Rancangan menu dibuat berdasarkan dua kelompok pengguna, yaitu pasien dan admin.
 | 3 | Informasi spesialisasi | Menampilkan atau memproses spesialisasi yang disebutkan user. | Opsi spesialisasi atau dokter. |
 | 4 | Pilihan dokter | Menampilkan dokter dari database. | Daftar dokter sesuai spesialisasi, rumah sakit, atau lokasi. |
 | 5 | Pilihan jadwal | Menampilkan slot waktu tersedia. | Opsi tanggal dan jam. |
-| 6 | Input data pasien | Meminta nama, telepon, dan email pasien. | Data pasien siap dipakai untuk appointment. |
-| 7 | Ringkasan hasil | Menampilkan hasil appointment. | Nomor referensi/status appointment bila tersedia. |
+| 6 | Input keluhan pasien | Meminta keluhan singkat pasien untuk catatan appointment. | Keluhan tersimpan sebagai `symptoms_note`. |
+| 7 | Input data pasien | Meminta nama, telepon, dan email pasien. | Data pasien siap dipakai untuk appointment. |
+| 8 | Ringkasan hasil | Menampilkan hasil appointment. | Nomor referensi/status appointment bila tersedia. |
 
 #### 3.4.2 Rancangan Menu Admin
 
@@ -984,7 +1134,7 @@ Komponen layar:
 
 #### 3.5.2 Layar Chatroom
 
-Layar chatroom adalah layar utama pasien. Pada layar ini pasien mengirim pertanyaan, memilih dokter, memilih jadwal, memilih slot, mengisi data pasien, dan menerima ringkasan appointment.
+Layar chatroom adalah layar utama pasien. Pada layar ini pasien mengirim pertanyaan, memilih dokter, memilih jadwal, memilih slot, mengisi keluhan, mengisi data pasien, dan menerima ringkasan appointment.
 
 Komponen layar:
 
@@ -992,7 +1142,7 @@ Komponen layar:
 |---|---|
 | Message bubble user | Menampilkan pesan dari pasien. |
 | Message bubble bot | Menampilkan respons chatbot. |
-| Input pesan | Tempat pasien mengetik pertanyaan, pilihan, atau data pasien. |
+| Input pesan | Tempat pasien mengetik pertanyaan, pilihan, keluhan, atau data pasien. |
 | Tombol kirim | Mengirim pesan ke endpoint `/api/chat`. |
 | Typing indicator | Menunjukkan chatbot sedang memproses jawaban. |
 | Session end modal | Menutup percakapan jika sesi selesai. |
@@ -1034,13 +1184,14 @@ Algoritma sistem dibagi menjadi beberapa bagian agar alur lebih mudah diuji dan 
 #### 3.6.1 Algoritma Pipeline NLP Chatbot
 
 1. Sistem menerima pesan pasien dari frontend melalui endpoint `POST /api/chat`.
-2. Tokenizer menormalisasi teks menjadi huruf kecil dan token sederhana.
-3. Tokenizer mengganti sinonim tertentu, misalnya `rs` menjadi `rumah sakit`.
+2. Scanner/tokenizer menormalisasi teks menjadi huruf kecil dan token sederhana.
+3. Scanner/tokenizer mengganti sinonim tertentu, misalnya `rs` menjadi `rumah sakit`.
 4. Parser membaca entity seperti nama dokter, nama rumah sakit, kota, spesialisasi, tanggal, dan jam.
-5. Translator mengecek daftar rule intent secara berurutan.
-6. Intent dengan rule yang cocok dipilih sebagai intent utama.
-7. Evaluator menjalankan aksi berdasarkan intent dan state percakapan.
-8. Response chatbot dikembalikan ke frontend dan history disimpan di Redis.
+5. Parser membentuk tipe kalimat dan pohon sintaks.
+6. Translator mengecek daftar rule intent secara berurutan.
+7. Intent dengan rule yang cocok dipilih sebagai intent utama.
+8. Evaluator menjalankan aksi berdasarkan intent dan state percakapan.
+9. Response chatbot dikembalikan ke frontend dan history disimpan di Redis.
 
 #### 3.6.2 Algoritma Pencarian Rumah Sakit dan Dokter
 
@@ -1070,10 +1221,12 @@ Algoritma sistem dibagi menjadi beberapa bagian agar alur lebih mudah diuji dan 
 3. Pasien memilih jadwal berdasarkan nomor.
 4. Chatbot menampilkan pilihan jam yang masih tersedia.
 5. Pasien memilih jam berdasarkan nomor.
-6. Chatbot meminta data pasien dengan format nama, telepon, dan email.
-7. Backend membuat atau memperbarui data user.
-8. Backend membuat appointment dengan status `pending`.
-9. Chatbot menampilkan nomor appointment, dokter, rumah sakit, tanggal, jam, dan data pasien.
+6. Chatbot meminta keluhan pasien untuk dicatat pada appointment.
+7. Pasien mengirim keluhan secara singkat.
+8. Chatbot meminta data pasien dengan format nama, telepon, dan email.
+9. Backend membuat atau memperbarui data user.
+10. Backend membuat appointment dengan status `pending` dan mengisi `symptoms_note` dari keluhan pasien.
+11. Chatbot menampilkan nomor appointment, dokter, rumah sakit, tanggal, jam, keluhan, dan data pasien.
 
 #### 3.6.5 Algoritma Bulk Upload CSV
 
@@ -1098,8 +1251,9 @@ Activity Diagram digunakan untuk menggambarkan urutan aktivitas sistem sesuai ke
 start
 :Pasien mengirim pesan chat;
 :Backend menerima request /api/chat;
-:Tokenizer memecah pesan menjadi token;
+:Scanner/tokenizer memecah pesan menjadi token;
 :Parser mengambil entity;
+:Parser membentuk pohon sintaks dan tipe kalimat;
 :Translator menentukan intent;
 :Evaluator membaca state dari Redis;
 
@@ -1117,10 +1271,12 @@ endif
 :Evaluator mengambil slot tersedia;
 :Chatbot menampilkan pilihan jam;
 :Pasien memilih jam;
+:Chatbot meminta keluhan pasien;
+:Pasien mengirim keluhan;
 :Chatbot meminta data pasien;
 :Pasien mengirim nama, telepon, dan email;
 :Backend membuat/memperbarui user;
-:Backend membuat appointment status pending;
+:Backend membuat appointment status pending dengan symptoms_note;
 :Redis menyimpan history chat;
 :Chatbot menampilkan hasil booking;
 stop
@@ -1177,7 +1333,7 @@ Lingkungan percobaan menjelaskan perangkat keras, perangkat lunak, dan arsitektu
 |---|---|---|
 | Frontend | Next.js 15, React 18, TypeScript, Tailwind CSS | Antarmuka chatroom dan bulk upload. |
 | Backend | Go, Gin, GORM | API untuk data master, jadwal, user, appointment, chat, NLP pipeline, dan bulk upload. |
-| NLP Pipeline | Tokenizer, Parser, Translator, Evaluator | Memproses pesan user menjadi intent/entity dan menjalankan rule chatbot. |
+| NLP Pipeline | Scanner/Tokenizer, Parser, Pohon Sintaks, Translator, Evaluator | Memproses pesan user menjadi token, entity, tipe kalimat, intent, dan response akhir. |
 | Database | PostgreSQL 15 | Penyimpanan data rumah sakit, dokter, jadwal, user, dan appointment. |
 | Memory | Redis 7 | Penyimpanan state booking dan history percakapan. |
 | Container | Docker Compose | Menjalankan PostgreSQL, Redis, backend, dan service pendukung. |
@@ -1229,13 +1385,13 @@ Data masukan pada sistem berasal dari dua sumber utama: data percakapan pasien d
 
 | Data | Bentuk | Format | Sumber | Keterangan |
 |---|---|---|---|---|
-| Pesan pasien | Teks | Bahasa Indonesia | Chatroom | Berisi pertanyaan layanan, lokasi, tanggal, pilihan dokter, atau data pasien. |
+| Pesan pasien | Teks | Bahasa Indonesia | Chatroom | Berisi pertanyaan layanan, lokasi, tanggal, pilihan dokter, keluhan, atau data pasien. |
 | Data rumah sakit | CSV/JSON | `hospitals.csv` | Admin/API | Berisi nama, alamat, kota, dan nomor telepon. |
 | Data spesialisasi | CSV/JSON | `specializations.csv` | Admin/API | Berisi nama dan deskripsi spesialisasi. |
 | Data dokter | CSV/JSON | `doctors.csv` | Admin/API | Berisi specialization_id, hospital_id, nama dokter, bio, pengalaman, dan status aktif. |
 | Data jadwal dokter | CSV/JSON | `doctor_schedules.csv` | Admin/API | Berisi doctor_id, hari praktik, jam mulai, jam selesai, dan interval slot. |
 | Data pasien | JSON | Request `POST /api/users` | Chatbot/API | Berisi nama lengkap, nomor telepon, dan email. |
-| Data appointment | JSON | Request `POST /api/appointments` | Chatbot/API | Berisi user, dokter, rumah sakit, tanggal, jam, status, dan catatan bila tersedia. |
+| Data appointment | JSON | Request `POST /api/appointments` | Chatbot/API | Berisi user, dokter, rumah sakit, tanggal, jam, keluhan pasien, status, dan catatan bila tersedia. |
 
 #### 4.2.2 Jumlah Data Uji
 
@@ -1270,39 +1426,40 @@ Data uji tersedia pada folder `service-antrik-main/csv_test_data/50_rows/`. Juml
   "hospital_id": 2,
   "appointment_date": "2026-07-20T00:00:00Z",
   "appointment_time": "09:00",
-  "symptoms_note": "Booking melalui chatbot",
+  "symptoms_note": "sakit gigi sejak 2 hari",
   "status": "pending"
 }
 ```
 
 ### 4.3 Langkah Pengujian
 
-Pengujian dilakukan untuk memastikan bahwa sistem berjalan sesuai rancangan. Pengujian mencakup alur chatbot, tokenisasi, parsing, translasi intent, API backend, validasi jadwal, pembuatan appointment, Redis history, dan bulk upload.
+Pengujian dilakukan untuk memastikan bahwa sistem berjalan sesuai rancangan. Pengujian mencakup alur chatbot, scanner/tokenisasi, parsing, pohon sintaks, translasi intent, API backend, validasi jadwal, pembuatan appointment, Redis history, dan bulk upload.
 
 #### 4.3.1 Skenario Pengujian
 
 | No | Skenario | Tujuan | Hasil yang Diharapkan |
 |---|---|---|---|
-| 1 | Tokenisasi pesan | Memastikan sinonim dan kata penting terbaca. | Token seperti `rs`, `reservasi`, dan `dokter` dinormalisasi. |
+| 1 | Scanner/tokenisasi pesan | Memastikan sinonim dan kata penting terbaca. | Token seperti `rs`, `reservasi`, dan `dokter` dinormalisasi. |
 | 2 | Parsing entity | Memastikan nama rumah sakit, kota, dokter, tanggal, dan jam terbaca. | Entity terisi sesuai pesan user. |
-| 3 | Translasi intent | Memastikan pesan masuk ke intent yang tepat. | Intent seperti `LIST_HOSPITALS`, `FIND_DOCTOR_BY_HOSPITAL`, dan `BOOK_APPOINTMENT` terbaca. |
-| 4 | List rumah sakit | Memastikan rumah sakit dapat difilter berdasarkan kota. | Sistem menampilkan rumah sakit sesuai kota. |
-| 5 | Detail rumah sakit | Memastikan informasi rumah sakit dapat ditampilkan. | Sistem menampilkan alamat, kota, dan nomor telepon. |
-| 6 | Pencarian dokter | Memastikan dokter difilter dari data aktual. | Sistem menampilkan dokter sesuai rumah sakit atau spesialisasi. |
-| 7 | Pengecekan jadwal | Memastikan jadwal memakai doctor_id dan tanggal. | Sistem menampilkan jadwal pada tanggal yang sesuai. |
-| 8 | Validasi slot booked | Memastikan slot yang sudah terisi ditandai. | Slot appointment yang sudah ada ditandai `booked=true`. |
-| 9 | Pembuatan appointment | Memastikan booking dibuat setelah data pasien lengkap. | Appointment tersimpan dengan status `pending`. |
-| 10 | Redis history | Memastikan percakapan dapat dibuka kembali. | History chat tersedia setelah service restart. |
-| 11 | Bulk upload CSV | Memastikan data master dapat diunggah. | Backend menampilkan jumlah baris berhasil atau error. |
-| 12 | Bulk upload URL | Memastikan Google Spreadsheet publik dapat diproses. | URL diubah menjadi export CSV dan data diproses. |
+| 3 | Pohon sintaks dan tipe kalimat | Memastikan struktur kalimat terbentuk. | Response `parsed` memiliki `sentence_type` dan `syntax_tree`. |
+| 4 | Translasi intent | Memastikan pesan masuk ke intent yang tepat. | Intent seperti `LIST_HOSPITALS`, `FIND_DOCTOR_BY_HOSPITAL`, dan `BOOK_APPOINTMENT` terbaca. |
+| 5 | List rumah sakit | Memastikan rumah sakit dapat difilter berdasarkan kota. | Sistem menampilkan rumah sakit sesuai kota. |
+| 6 | Detail rumah sakit | Memastikan informasi rumah sakit dapat ditampilkan. | Sistem menampilkan alamat, kota, dan nomor telepon. |
+| 7 | Pencarian dokter | Memastikan dokter difilter dari data aktual. | Sistem menampilkan dokter sesuai rumah sakit atau spesialisasi. |
+| 8 | Pengecekan jadwal | Memastikan jadwal memakai doctor_id dan tanggal. | Sistem menampilkan jadwal pada tanggal yang sesuai. |
+| 9 | Validasi slot booked | Memastikan slot yang sudah terisi ditandai. | Slot appointment yang sudah ada ditandai `booked=true`. |
+| 10 | Pembuatan appointment | Memastikan booking dibuat setelah keluhan dan data pasien lengkap. | Appointment tersimpan dengan status `pending` dan `symptoms_note` terisi. |
+| 11 | Redis history | Memastikan percakapan dapat dibuka kembali. | History chat tersedia setelah service restart. |
+| 12 | Bulk upload CSV | Memastikan data master dapat diunggah. | Backend menampilkan jumlah baris berhasil atau error. |
+| 13 | Bulk upload URL | Memastikan Google Spreadsheet publik dapat diproses. | URL diubah menjadi export CSV dan data diproses. |
 
-#### 4.3.2 Langkah Pengujian Tokenizer, Parser, dan Translator
+#### 4.3.2 Langkah Pengujian Scanner, Parser, Pohon Sintaks, dan Translator
 
 | Langkah | Aksi | Tampilan/Screenshot yang Dilampirkan | Hasil yang Diharapkan |
 |---|---|---|---|
-| 1 | User mengirim pesan "rumah sakit di Tangerang ada apa saja". | Gambar IV.1 Pesan list rumah sakit. | Token dan entity location menghasilkan intent `LIST_HOSPITALS`. |
-| 2 | User mengirim pesan "detail rumah sakit RSUP Nasional". | Gambar IV.2 Pesan detail rumah sakit. | Parser mengambil hospital_name dan translator menghasilkan `ASK_HOSPITAL_LOCATION`. |
-| 3 | User mengirim pesan "jadwal dokter Budi besok". | Gambar IV.3 Pesan jadwal dokter. | Parser mengambil doctor_name dan date, translator menghasilkan `ASK_DOCTOR_SCHEDULE`. |
+| 1 | User mengirim pesan "rumah sakit di Tangerang ada apa saja". | Gambar IV.1 Pesan list rumah sakit. | Scanner menghasilkan token, parser mengambil location, syntax tree terbentuk, dan translator menghasilkan `LIST_HOSPITALS`. |
+| 2 | User mengirim pesan "detail rumah sakit RSUP Nasional". | Gambar IV.2 Pesan detail rumah sakit. | Parser mengambil hospital_name, syntax tree memiliki entity rumah sakit, dan translator menghasilkan `ASK_HOSPITAL_LOCATION`. |
+| 3 | User mengirim pesan "jadwal dokter Budi besok". | Gambar IV.3 Pesan jadwal dokter. | Parser mengambil doctor_name dan date, syntax tree memiliki konteks waktu, dan translator menghasilkan `ASK_DOCTOR_SCHEDULE`. |
 | 4 | User mengirim pesan "jadwal dokter Budi" tanpa tanggal. | Gambar IV.4 Pesan jadwal tanpa tanggal. | Sistem tidak langsung mengecek booked slot dan meminta tanggal. |
 
 #### 4.3.3 Langkah Pengujian Pencarian Rumah Sakit dan Dokter
@@ -1323,8 +1480,9 @@ Pengujian dilakukan untuk memastikan bahwa sistem berjalan sesuai rancangan. Pen
 | 3 | Pasien memilih jadwal. | Gambar IV.11 Pilihan tanggal. | State menyimpan tanggal jadwal. |
 | 4 | Sistem mengambil slot jam. | Gambar IV.12 Pilihan jam. | Slot yang sudah booked tidak ditawarkan untuk booking baru. |
 | 5 | Pasien memilih jam. | Gambar IV.13 Pilihan jam pasien. | State menyimpan jam yang dipilih. |
-| 6 | Chatbot meminta data pasien. | Gambar IV.14 Input data pasien. | Data pasien lengkap sebelum booking. |
-| 7 | Backend membuat appointment. | Gambar IV.15 Booking berhasil. | Appointment memiliki status `pending` dan reply menampilkan detail pasien. |
+| 6 | Chatbot meminta keluhan pasien. | Gambar IV.14 Input keluhan pasien. | State menyimpan keluhan untuk `symptoms_note`. |
+| 7 | Chatbot meminta data pasien. | Gambar IV.15 Input data pasien. | Data pasien lengkap sebelum booking. |
+| 8 | Backend membuat appointment. | Gambar IV.16 Booking berhasil. | Appointment memiliki status `pending`, `symptoms_note` terisi, dan reply menampilkan detail pasien. |
 
 #### 4.3.5 Langkah Pengujian Bulk Upload
 
@@ -1420,7 +1578,7 @@ Berdasarkan rancangan dan hasil uji fungsional, solusi Chatbot Antrik sudah meme
 
 Berdasarkan hasil analisis, perancangan, dan implementasi, Chatbot Antrik berhasil dirancang sebagai prototipe chatbot berbasis Natural Language Processing untuk membantu pasien memperoleh informasi rumah sakit, dokter, jadwal, dan melakukan booking dokter. Sistem menggunakan tokenizer, parser, translator, dan evaluator buatan sendiri pada backend Go, Redis sebagai penyimpanan state dan history, PostgreSQL sebagai database, dan Next.js sebagai frontend.
 
-Project ini menjawab kebutuhan utama yaitu mempermudah pasien mencari informasi layanan dan membuat appointment tanpa harus bertanya manual kepada admin. Chatbot tidak memberikan penilaian medis atau rekomendasi klinis. Chatbot memproses intent operasional, mengambil data dokter dan jadwal dari database, meminta data pasien, serta membuat appointment dengan status `pending`. Dengan demikian, sistem dapat membantu mempercepat akses pasien ke layanan dokter dan mengurangi proses manual dalam booking.
+Project ini menjawab kebutuhan utama yaitu mempermudah pasien mencari informasi layanan dan membuat appointment tanpa harus bertanya manual kepada admin. Chatbot tidak memberikan penilaian medis atau rekomendasi klinis. Chatbot memproses intent operasional, mengambil data dokter dan jadwal dari database, meminta keluhan sebagai catatan appointment, meminta data pasien, serta membuat appointment dengan status `pending`. Dengan demikian, sistem dapat membantu mempercepat akses pasien ke layanan dokter dan mengurangi proses manual dalam booking.
 
 ### 5.2 Saran
 

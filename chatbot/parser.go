@@ -8,61 +8,47 @@ import (
 
 var timePattern = regexp.MustCompile(`\b([01]?\d|2[0-3])[:.]([0-5]\d)\b`)
 var datePattern = regexp.MustCompile(`\b(\d{4}-\d{2}-\d{2}|\d{1,2}/\d{1,2}/\d{4})\b`)
+var selectionPattern = regexp.MustCompile(`^\d+$`)
 
 // Parse mengubah token hasil tokenizer menjadi struktur entity yang bisa dipakai translator dan evaluator.
 func Parse(message string, tokens []string) ParseResult {
-	parsed := newParseResult(message, tokens)
-	readTokenEntities(&parsed)
-	readPatternEntities(&parsed, message, tokens)
-	normalizeHospitalAndCity(&parsed)
-
-	return parsed
-}
-
-// newParseResult menyiapkan hasil parse dasar, termasuk flag negasi seperti "batal" atau "tidak".
-func newParseResult(message string, tokens []string) ParseResult {
-	return ParseResult{
+	parsed := ParseResult{
 		OriginalMessage: message,
 		Tokens:          tokens,
 		Entities:        Entities{},
 		IsNegation:      containsToken(tokens, NegationTokens...),
 	}
-}
 
-// readTokenEntities membaca entity yang bisa dikenali langsung dari satu token, seperti action word dan spesialisasi.
-func readTokenEntities(parsed *ParseResult) {
 	for _, token := range parsed.Tokens {
 		if isActionWord(token) {
-			parsed.ActionWords = appendUnique(parsed.ActionWords, token)
+			if !containsToken(parsed.ActionWords, token) {
+				parsed.ActionWords = append(parsed.ActionWords, token)
+			}
 		}
 		if spec, ok := SpecializationKeywordByToken[token]; ok {
 			parsed.Entities.Specialization = spec
 		}
 	}
-}
 
-// readPatternEntities membaca entity yang perlu pola atau posisi kata, seperti tanggal, jam, dokter, rumah sakit, dan lokasi.
-func readPatternEntities(parsed *ParseResult, message string, tokens []string) {
 	parsed.Entities.DateText, parsed.Entities.Date = parseDateEntity(message)
 	parsed.Entities.Time = parseTimeEntity(message)
 	parsed.Entities.DoctorName = parseNamedEntityAfter(tokens, TokenDoctor)
 	parsed.Entities.HospitalName = parseHospitalEntity(tokens)
 	parsed.Entities.Location = parseLocationEntity(tokens)
-}
 
-// normalizeHospitalAndCity memisahkan nama rumah sakit dan kota jika user menulisnya dalam satu frasa.
-// Contoh: "rumah sakit bunda margonda depok" menjadi hospital_name "bunda margonda" dan location "depok".
-func normalizeHospitalAndCity(parsed *ParseResult) {
-	if parsed.Entities.HospitalName == "" {
-		return
+	if parsed.Entities.HospitalName != "" {
+		originalHospitalName := parsed.Entities.HospitalName
+		hospitalName, city := splitHospitalNameAndCity(parsed.Entities.HospitalName)
+		parsed.Entities.HospitalName = hospitalName
+		if city != "" && (parsed.Entities.Location == "" || parsed.Entities.Location == originalHospitalName) {
+			parsed.Entities.Location = city
+		}
 	}
 
-	originalHospitalName := parsed.Entities.HospitalName
-	hospitalName, city := splitHospitalNameAndCity(parsed.Entities.HospitalName)
-	parsed.Entities.HospitalName = hospitalName
-	if city != "" && (parsed.Entities.Location == "" || parsed.Entities.Location == originalHospitalName) {
-		parsed.Entities.Location = city
-	}
+	parsed.SentenceType = classifySentenceType(parsed)
+	parsed.SyntaxTree = BuildSyntaxTree(parsed)
+
+	return parsed
 }
 
 // parseTimeEntity membaca jam dari pesan dan menormalkannya ke format HH:MM.
@@ -72,7 +58,11 @@ func parseTimeEntity(message string) string {
 	if len(match) != 3 {
 		return ""
 	}
-	return leftPadHour(match[1]) + ":" + match[2]
+	hour := match[1]
+	if len(hour) == 1 {
+		hour = "0" + hour
+	}
+	return hour + ":" + match[2]
 }
 
 // parseDateEntity membaca tanggal relatif dan tanggal eksplisit, lalu menormalkannya ke format YYYY-MM-DD.
@@ -137,12 +127,15 @@ func parseLocationEntity(tokens []string) string {
 	for index, token := range tokens {
 		if containsToken([]string{token}, LocationMarkerTokens...) {
 			if index+1 < len(tokens) {
+				if token == TokenIn && hasHospitalPhraseAt(tokens, index+1) {
+					continue
+				}
 				return collectEntityWords(tokens[index+1:])
 			}
 		}
 	}
 
-	if hasHospitalListWords(tokens) {
+	if containsToken(tokens, HospitalListIntentTokens...) {
 		for index := 0; index < len(tokens)-1; index++ {
 			if tokens[index] == TokenHospitalFirst && tokens[index+1] == TokenHospitalSecond {
 				return collectEntityWords(tokens[index+2:])
@@ -151,6 +144,12 @@ func parseLocationEntity(tokens []string) string {
 	}
 
 	return ""
+}
+
+func hasHospitalPhraseAt(tokens []string, index int) bool {
+	return index+1 < len(tokens) &&
+		tokens[index] == TokenHospitalFirst &&
+		tokens[index+1] == TokenHospitalSecond
 }
 
 // splitHospitalNameAndCity memotong suffix kota yang dikenal dari nama rumah sakit.
@@ -193,7 +192,7 @@ func hasSuffixTokens(tokens []string, suffix []string) bool {
 func collectEntityWords(tokens []string) string {
 	words := make([]string, 0, 3)
 	for _, token := range tokens {
-		if EntityStopwordTokens[token] || isEntityBoundaryToken(token) {
+		if EntityStopwordTokens[token] || strings.Contains(token, ":") || datePattern.MatchString(token) {
 			break
 		}
 		if isActionWord(token) {
@@ -207,26 +206,88 @@ func collectEntityWords(tokens []string) string {
 	return strings.Join(words, " ")
 }
 
-// isEntityBoundaryToken menandai token yang harus menghentikan pembacaan entity, misalnya jam atau tanggal.
-func isEntityBoundaryToken(token string) bool {
-	return strings.Contains(token, ":") || datePattern.MatchString(token)
+// classifySentenceType memberi label tipe kalimat sederhana yang dipakai untuk menjelaskan konteks input.
+func classifySentenceType(parsed ParseResult) string {
+	normalized := normalizeMessage(parsed.OriginalMessage)
+	hasPatientName := strings.Contains(normalized, "nama")
+	hasPatientPhone := strings.Contains(normalized, "phone") || strings.Contains(normalized, "telepon") || strings.Contains(normalized, "telp")
+	hasPatientEmail := strings.Contains(normalized, "email")
+
+	switch {
+	case hasPatientName && hasPatientPhone && hasPatientEmail:
+		return "DATA_PASIEN"
+	case len(parsed.Tokens) == 1 && selectionPattern.MatchString(parsed.Tokens[0]):
+		return "PILIHAN_NOMOR"
+	case parsed.IsNegation && containsToken(parsed.Tokens, TokenCancel, TokenCancelEN):
+		return "PEMBATALAN"
+	case containsToken(parsed.Tokens, GreetingTokens...):
+		return "SAPAAN"
+	case containsToken(parsed.Tokens, QuestionTokens...) || strings.Contains(parsed.OriginalMessage, "?"):
+		return "PERTANYAAN"
+	case containsToken(parsed.Tokens, BookingIntentTokens...) || containsPhrase(parsed.OriginalMessage, PhraseCreateAppointment, PhraseAppointmentMeeting):
+		return "PERMINTAAN_BOOKING"
+	case len(parsed.ActionWords) > 0:
+		return "PERINTAH"
+	default:
+		return "PERNYATAAN"
+	}
 }
 
-// appendUnique menambahkan value ke slice hanya jika belum ada.
-func appendUnique(values []string, value string) []string {
-	for _, existing := range values {
-		if existing == value {
-			return values
+// BuildSyntaxTree menyusun pohon sintaks sederhana dari hasil scanner dan parser.
+func BuildSyntaxTree(parsed ParseResult) SyntaxNode {
+	return SyntaxNode{
+		Type: "KALIMAT",
+		Children: []SyntaxNode{
+			{Type: "TIPE_KALIMAT", Value: parsed.SentenceType},
+			{Type: "TOKEN", Children: buildValueNodes("KATA", parsed.Tokens)},
+			{Type: "AKSI", Children: buildValueNodes("KATA_AKSI", parsed.ActionWords)},
+			{Type: "ENTITY", Children: buildEntityNodes(parsed.Entities)},
+			{Type: "KONTEKS", Children: buildContextNodes(parsed)},
+		},
+	}
+}
+
+func buildValueNodes(nodeType string, values []string) []SyntaxNode {
+	nodes := make([]SyntaxNode, 0, len(values))
+	for _, value := range values {
+		if value == "" {
+			continue
+		}
+		nodes = append(nodes, SyntaxNode{Type: nodeType, Value: value})
+	}
+	return nodes
+}
+
+func buildEntityNodes(entities Entities) []SyntaxNode {
+	nodes := make([]SyntaxNode, 0, 6)
+	appendEntityNode := func(name, value string) {
+		if value != "" {
+			nodes = append(nodes, SyntaxNode{Type: name, Value: value})
 		}
 	}
-	return append(values, value)
+
+	appendEntityNode("SPESIALISASI", entities.Specialization)
+	appendEntityNode("DOKTER", entities.DoctorName)
+	appendEntityNode("RUMAH_SAKIT", entities.HospitalName)
+	appendEntityNode("LOKASI", entities.Location)
+	appendEntityNode("TANGGAL_TEXT", entities.DateText)
+	appendEntityNode("TANGGAL", entities.Date)
+	appendEntityNode("JAM", entities.Time)
+
+	return nodes
 }
 
-// leftPadHour memastikan jam satu digit menjadi dua digit.
-// Contoh: "9" menjadi "09".
-func leftPadHour(value string) string {
-	if len(value) == 1 {
-		return "0" + value
+func buildContextNodes(parsed ParseResult) []SyntaxNode {
+	negation := "false"
+	if parsed.IsNegation {
+		negation = "true"
 	}
-	return value
+	nodes := []SyntaxNode{{Type: "NEGASI", Value: negation}}
+	if parsed.Entities.Date != "" {
+		nodes = append(nodes, SyntaxNode{Type: "KONTEKS_WAKTU", Value: parsed.Entities.Date})
+	}
+	if parsed.Entities.Location != "" {
+		nodes = append(nodes, SyntaxNode{Type: "KONTEKS_LOKASI", Value: parsed.Entities.Location})
+	}
+	return nodes
 }

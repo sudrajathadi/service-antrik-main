@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"service-antrik-chatbot/models"
@@ -37,9 +38,12 @@ func (e *Evaluator) listHospitals(state ChatState, response ChatResponse) (ChatR
 }
 
 func (e *Evaluator) hospitalLocation(state ChatState, response ChatResponse) (ChatResponse, error) {
-	hospital, err := e.findHospitalFromParsed(response.Parsed)
+	hospital, candidates, err := e.resolveHospitalFromParsed(response.Parsed)
 	if err != nil {
 		return response, err
+	}
+	if len(candidates) > 1 {
+		return e.askHospitalSelection(state, response, candidates, IntentAskHospitalLocation)
 	}
 
 	if hospital == nil {
@@ -58,13 +62,106 @@ func (e *Evaluator) hospitalLocation(state ChatState, response ChatResponse) (Ch
 	return e.finish(response, state)
 }
 
-func (e *Evaluator) findHospitalFromParsed(parsed ParseResult) (*models.Hospital, error) {
-	hospitals, err := e.hospitals.FindAll()
-	if err != nil {
-		return nil, err
+func (e *Evaluator) resolveHospitalFromParsed(parsed ParseResult) (*models.Hospital, []models.Hospital, error) {
+	if parsed.Entities.HospitalName != "" {
+		hospitals, err := e.hospitals.FindAllByName(parsed.Entities.HospitalName)
+		if err != nil {
+			return nil, nil, err
+		}
+		hospitals = filterHospitalsByLocation(hospitals, parsed.Entities.Location)
+		if len(hospitals) > 1 {
+			return nil, hospitals, nil
+		}
+		if len(hospitals) == 1 {
+			return &hospitals[0], nil, nil
+		}
 	}
 
-	return matchHospital(hospitals, parsed.Entities.HospitalName, parsed.Entities.Location, parsed.OriginalMessage), nil
+	if parsed.Entities.HospitalName == "" {
+		return nil, nil, nil
+	}
+
+	hospitals, err := e.hospitals.FindAll()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return matchHospital(hospitals, parsed.Entities.HospitalName, parsed.Entities.Location, parsed.OriginalMessage), nil, nil
+}
+
+func filterHospitalsByLocation(hospitals []models.Hospital, location string) []models.Hospital {
+	location = normalizeMessage(location)
+	if location == "" {
+		return hospitals
+	}
+
+	filtered := make([]models.Hospital, 0, len(hospitals))
+	for _, hospital := range hospitals {
+		name := normalizeMessage(hospital.Name)
+		city := normalizeMessage(hospital.City)
+		address := normalizeMessage(hospital.Address)
+		if strings.Contains(name, location) || strings.Contains(city, location) || strings.Contains(address, location) {
+			filtered = append(filtered, hospital)
+		}
+	}
+	if len(filtered) == 0 {
+		return hospitals
+	}
+	return filtered
+}
+
+func (e *Evaluator) askHospitalSelection(state ChatState, response ChatResponse, hospitals []models.Hospital, pendingIntent Intent) (ChatResponse, error) {
+	summaries := summarizeHospitals(hospitals)
+	state.CurrentFlow = ""
+	state.Awaiting = awaitingHospitalSelection
+	state.PendingIntent = pendingIntent
+	state.PendingHospitals = summaries
+	state.PendingDoctors = nil
+	state.PendingSchedules = nil
+	state.PendingTimeSlots = nil
+	response.Data = summaries
+	response.NeedInput = []string{awaitingHospitalSelection}
+	response.Reply = "Saya menemukan beberapa rumah sakit yang cocok. Pilih rumah sakit yang dimaksud:\n" + joinNumberedHospitalNames(summaries) + "\n\nBalas dengan nomor rumah sakit."
+	return e.finish(response, state)
+}
+
+func (e *Evaluator) selectHospitalByNumber(state ChatState, response ChatResponse, number int) (ChatResponse, error) {
+	if number < 1 || number > len(state.PendingHospitals) {
+		return e.replyWithState(response, state, fmt.Sprintf("Nomor rumah sakit tidak tersedia. Pilih nomor 1 sampai %d.", len(state.PendingHospitals)))
+	}
+
+	selected := state.PendingHospitals[number-1]
+	hospital := models.Hospital{
+		Base:        models.Base{ID: selected.ID},
+		Name:        selected.Name,
+		Address:     selected.Address,
+		City:        selected.City,
+		PhoneNumber: selected.PhoneNumber,
+	}
+
+	pendingIntent := state.PendingIntent
+	state.SelectedHospitalID = hospital.ID
+	state.SelectedHospitalName = hospital.Name
+	state.PendingIntent = ""
+	state.PendingHospitals = nil
+	state.Awaiting = ""
+	response.Parsed.Entities.HospitalName = hospital.Name
+	response.Parsed.Entities.Location = hospital.City
+
+	switch pendingIntent {
+	case IntentAskHospitalLocation:
+		response.Data = hospital
+		response.Reply = fmt.Sprintf("%s berlokasi di %s, %s. Nomor telepon: %s.", hospital.Name, hospital.Address, hospital.City, emptyDash(hospital.PhoneNumber))
+		return e.finish(response, state)
+	case IntentListSpecializationsByHospital:
+		return e.listSpecializationsForHospital(state, response, hospital)
+	case IntentFindDoctorByHospital, IntentAskDoctor:
+		return e.findDoctorsForHospital(state, response, hospital, repository.DoctorFilter{Specialization: state.SelectedSpecialty})
+	default:
+		response.Reply = "Pilihan rumah sakit sudah saya terima. Kamu ingin melihat lokasi, dokter, spesialisasi, atau jadwal?"
+		response.NeedInput = []string{"intent"}
+		return e.finish(response, state)
+	}
 }
 
 func (e *Evaluator) listSpecializations(state ChatState, response ChatResponse) (ChatResponse, error) {
@@ -82,6 +179,56 @@ func (e *Evaluator) listSpecializations(state ChatState, response ChatResponse) 
 	return e.finish(response, state)
 }
 
+func (e *Evaluator) listSpecializationsByHospital(state ChatState, response ChatResponse) (ChatResponse, error) {
+	hospital, candidates, err := e.resolveHospitalFromParsed(response.Parsed)
+	if err != nil {
+		return response, err
+	}
+	if len(candidates) > 1 {
+		return e.askHospitalSelection(state, response, candidates, IntentListSpecializationsByHospital)
+	}
+	if hospital == nil {
+		response.Reply = "Rumah sakit yang mana? Sebutkan nama rumah sakitnya agar saya bisa tampilkan spesialisasi yang tersedia."
+		response.NeedInput = []string{"hospital_name"}
+		return e.finish(response, state)
+	}
+
+	return e.listSpecializationsForHospital(state, response, *hospital)
+}
+
+func (e *Evaluator) listSpecializationsForHospital(state ChatState, response ChatResponse, hospital models.Hospital) (ChatResponse, error) {
+	doctors, err := e.doctors.FindAllFiltered(repository.DoctorFilter{HospitalID: hospital.ID})
+	if err != nil {
+		return response, err
+	}
+
+	seen := map[string]bool{}
+	names := make([]string, 0)
+	for _, doctor := range doctors {
+		name := strings.TrimSpace(doctor.Specialization.Name)
+		if !doctor.IsActive || name == "" || seen[name] {
+			continue
+		}
+		seen[name] = true
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	response.Data = names
+	response.Parsed.Entities.HospitalName = hospital.Name
+	response.Parsed.Entities.Location = hospital.City
+	if len(names) == 0 {
+		response.Reply = "Belum ada data spesialisasi yang tersedia di " + hospital.Name + "."
+	} else {
+		lines := make([]string, 0, len(names))
+		for _, name := range names {
+			lines = append(lines, "- "+name)
+		}
+		response.Reply = "Spesialisasi yang tersedia di " + hospital.Name + ":\n" + strings.Join(lines, "\n")
+	}
+	return e.finish(response, state)
+}
+
 func (e *Evaluator) findDoctors(state ChatState, response ChatResponse) (ChatResponse, error) {
 	filter := repository.DoctorFilter{
 		Specialization: state.SelectedSpecialty,
@@ -90,19 +237,19 @@ func (e *Evaluator) findDoctors(state ChatState, response ChatResponse) (ChatRes
 	}
 
 	if response.Parsed.Entities.HospitalName != "" {
-		hospital, err := e.findHospitalFromParsed(response.Parsed)
+		hospital, candidates, err := e.resolveHospitalFromParsed(response.Parsed)
 		if err != nil {
 			return response, err
+		}
+		if len(candidates) > 1 {
+			return e.askHospitalSelection(state, response, candidates, IntentFindDoctorByHospital)
 		}
 		if hospital == nil {
 			response.Reply = "Saya belum menemukan rumah sakit " + response.Parsed.Entities.HospitalName + ". Coba cek nama rumah sakitnya."
 			response.NeedInput = []string{"hospital_name"}
 			return e.finish(response, state)
 		}
-		filter.HospitalID = hospital.ID
-		filter.HospitalName = ""
-		response.Parsed.Entities.HospitalName = hospital.Name
-		response.Parsed.Entities.Location = hospital.City
+		return e.findDoctorsForHospital(state, response, *hospital, filter)
 	}
 
 	doctors, err := e.doctors.FindAllFiltered(filter)
@@ -141,7 +288,50 @@ func (e *Evaluator) findDoctors(state ChatState, response ChatResponse) (ChatRes
 	return e.finish(response, state)
 }
 
+func (e *Evaluator) findDoctorsForHospital(state ChatState, response ChatResponse, hospital models.Hospital, filter repository.DoctorFilter) (ChatResponse, error) {
+	filter.HospitalID = hospital.ID
+	filter.HospitalName = ""
+	filter.Location = ""
+	response.Parsed.Entities.HospitalName = hospital.Name
+	response.Parsed.Entities.Location = hospital.City
+
+	doctors, err := e.doctors.FindAllFiltered(filter)
+	if err != nil {
+		return response, err
+	}
+
+	if len(doctors) == 0 {
+		response.Reply = "Saya belum menemukan dokter di rumah sakit " + hospital.Name + ". Coba cek nama rumah sakit atau kota yang dimaksud."
+		response.NeedInput = []string{"hospital_name", "city"}
+		return e.finish(response, state)
+	}
+
+	summaries := summarizeDoctors(doctors)
+	state.CurrentFlow = flowBooking
+	state.PendingDoctors = summaries
+	state.PendingHospitals = nil
+	state.PendingSchedules = nil
+	state.PendingTimeSlots = nil
+	state.Awaiting = awaitingDoctorSelection
+	response.Data = summaries
+	response.Reply = "Saya menemukan dokter di " + hospital.Name + ":\n" + joinNumberedDoctorNames(summaries) + "\n\nBalas dengan nomor dokter yang ingin dipilih."
+	return e.finish(response, state)
+}
+
 func (e *Evaluator) showSchedule(state ChatState, response ChatResponse) (ChatResponse, error) {
+	if state.SelectedDoctorID == 0 && response.Parsed.Entities.DoctorName != "" {
+		doctors, err := e.findDoctorCandidates(response.Parsed)
+		if err != nil {
+			return response, err
+		}
+		if len(doctors) > 1 {
+			return e.askScheduleDoctorSelection(state, response, doctors)
+		}
+		if len(doctors) == 1 {
+			rememberDoctor(&state, doctors[0])
+		}
+	}
+
 	doctor, err := e.resolveDoctor(state, response.Parsed)
 	if err != nil {
 		return response, err
@@ -199,4 +389,45 @@ func (e *Evaluator) showSchedule(state ChatState, response ChatResponse) (ChatRe
 	}
 
 	return e.finish(response, state)
+}
+
+func (e *Evaluator) findDoctorCandidates(parsed ParseResult) ([]models.Doctor, error) {
+	doctors, err := e.doctors.FindAll()
+	if err != nil {
+		return nil, err
+	}
+	return matchDoctorCandidates(doctors, parsed.Entities.DoctorName, parsed.OriginalMessage), nil
+}
+
+func (e *Evaluator) askScheduleDoctorSelection(state ChatState, response ChatResponse, doctors []models.Doctor) (ChatResponse, error) {
+	summaries := summarizeDoctors(doctors)
+	state.CurrentFlow = ""
+	state.Awaiting = awaitingScheduleDoctor
+	state.PendingIntent = IntentAskDoctorSchedule
+	state.PendingDoctors = summaries
+	state.PendingHospitals = nil
+	state.PendingSchedules = nil
+	state.PendingTimeSlots = nil
+	response.Data = summaries
+	response.NeedInput = []string{awaitingScheduleDoctor}
+	response.Reply = "Saya menemukan beberapa dokter dengan nama tersebut. Pilih dokter yang dimaksud:\n" + joinNumberedDoctorNames(summaries) + "\n\nBalas dengan nomor dokter."
+	return e.finish(response, state)
+}
+
+func (e *Evaluator) selectScheduleDoctorByNumber(state ChatState, response ChatResponse, number int) (ChatResponse, error) {
+	if number < 1 || number > len(state.PendingDoctors) {
+		return e.replyWithState(response, state, fmt.Sprintf("Nomor dokter tidak tersedia. Pilih nomor 1 sampai %d.", len(state.PendingDoctors)))
+	}
+
+	selected := state.PendingDoctors[number-1]
+	state.SelectedDoctorID = selected.ID
+	state.SelectedDoctorName = selected.Name
+	state.SelectedHospitalID = selected.HospitalID
+	state.SelectedHospitalName = selected.Hospital
+	state.SelectedSpecialty = selected.Specialization
+	state.PendingIntent = ""
+	state.PendingDoctors = nil
+	state.Awaiting = ""
+
+	return e.showSchedule(state, response)
 }

@@ -9,6 +9,7 @@ type intentRule struct {
 var intentRules = []intentRule{
 	{IntentCancelFlow, 0.95, isCancelRequest},
 	{IntentGreeting, 0.8, hasGreeting},
+	{IntentListSpecializationsByHospital, 0.92, asksSpecializationsInHospital},
 	{IntentAskHospitalLocation, 0.9, asksHospitalLocation},
 	{IntentFindDoctorByHospital, 0.92, asksDoctorsInHospital},
 	{IntentListHospitals, 0.9, isHospitalListQuestion},
@@ -30,7 +31,7 @@ func Translate(parsed ParseResult) (Intent, float64) {
 
 func isHospitalListQuestion(parsed ParseResult) bool {
 	tokens := parsed.Tokens
-	if !containsPhrase(parsed.OriginalMessage, PhraseHospital) {
+	if !hasHospitalReference(parsed) {
 		return false
 	}
 	return containsPhrase(parsed.OriginalMessage, PhraseListHospital, PhraseRegisterHospital) ||
@@ -51,9 +52,20 @@ func asksHospitalLocation(parsed ParseResult) bool {
 		containsToken(parsed.Tokens, TokenHospitalFirst, TokenHospitalSecond)
 }
 
+func asksSpecializationsInHospital(parsed ParseResult) bool {
+	return containsToken(parsed.Tokens, TokenSpecialization) &&
+		hasHospitalReference(parsed)
+}
+
 func asksDoctorsInHospital(parsed ParseResult) bool {
-	return containsPhrase(parsed.OriginalMessage, PhraseHospital) &&
+	return hasHospitalReference(parsed) &&
 		containsToken(parsed.Tokens, TokenDoctor)
+}
+
+func hasHospitalReference(parsed ParseResult) bool {
+	return containsPhrase(parsed.OriginalMessage, PhraseHospital) ||
+		containsToken(parsed.Tokens, TokenHospitalFirst) &&
+			containsToken(parsed.Tokens, TokenHospitalSecond)
 }
 
 func asksSpecializationList(parsed ParseResult) bool {
@@ -63,7 +75,8 @@ func asksSpecializationList(parsed ParseResult) bool {
 }
 
 func hasScheduleToken(parsed ParseResult) bool {
-	return containsToken(parsed.Tokens, TokenSchedule) && parsed.Entities.Date != ""
+	return containsToken(parsed.Tokens, TokenSchedule, TokenWhen) ||
+		containsPhrase(parsed.OriginalMessage, "jam berapa")
 }
 
 func asksBooking(parsed ParseResult) bool {

@@ -66,6 +66,54 @@ func TestParseHospitalNameAndCityForDoctorQuestion(t *testing.T) {
 	}
 }
 
+func TestParseDoctorQuestionByHospitalDoesNotTreatLocationAsDoctorName(t *testing.T) {
+	message := "Siapa dokter di RS Primaya Tangerang"
+	tokens := Tokenize(message)
+	parsed := Parse(message, tokens)
+
+	if parsed.Entities.DoctorName != "" {
+		t.Fatalf("expected empty doctor name, got %q", parsed.Entities.DoctorName)
+	}
+	if parsed.Entities.HospitalName != "primaya" {
+		t.Fatalf("expected hospital name primaya, got %q", parsed.Entities.HospitalName)
+	}
+	if parsed.Entities.Location != "tangerang" {
+		t.Fatalf("expected tangerang location, got %q", parsed.Entities.Location)
+	}
+}
+
+func TestParseDoctorQuestionByHospitalWithoutPreposition(t *testing.T) {
+	message := "siapa dokter rumah sakit cengkareng"
+	tokens := Tokenize(message)
+	parsed := Parse(message, tokens)
+
+	if parsed.Entities.DoctorName != "" {
+		t.Fatalf("expected empty doctor name, got %q", parsed.Entities.DoctorName)
+	}
+	if parsed.Entities.HospitalName != "cengkareng" {
+		t.Fatalf("expected hospital name cengkareng, got %q", parsed.Entities.HospitalName)
+	}
+}
+
+func TestParseBuildsSentenceTypeAndSyntaxTree(t *testing.T) {
+	message := "jadwal dokter budi besok"
+	tokens := Scan(message)
+	parsed := Parse(message, tokens)
+
+	if parsed.SentenceType != "PERINTAH" {
+		t.Fatalf("expected PERINTAH sentence type, got %q", parsed.SentenceType)
+	}
+	if parsed.SyntaxTree.Type != "KALIMAT" {
+		t.Fatalf("expected KALIMAT syntax tree root, got %q", parsed.SyntaxTree.Type)
+	}
+	if !syntaxTreeHasNode(parsed.SyntaxTree, "DOKTER", "budi") {
+		t.Fatalf("expected syntax tree to contain doctor entity, got %#v", parsed.SyntaxTree)
+	}
+	if !syntaxTreeHasNode(parsed.SyntaxTree, "TANGGAL", parsed.Entities.Date) {
+		t.Fatalf("expected syntax tree to contain date entity, got %#v", parsed.SyntaxTree)
+	}
+}
+
 func TestTranslateCoreIntents(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -75,11 +123,17 @@ func TestTranslateCoreIntents(t *testing.T) {
 		{name: "hospital list", message: "daftar rumah sakit", intent: IntentListHospitals},
 		{name: "hospital list by city", message: "rumah sakit di tangerang ada apa saja?", intent: IntentListHospitals},
 		{name: "doctors by hospital", message: "rumah sakit bunda margonda depok ada dokter siapa saja?", intent: IntentFindDoctorByHospital},
+		{name: "doctors by hospital rs acronym", message: "Siapa dokter di RS Primaya Tangerang", intent: IntentFindDoctorByHospital},
+		{name: "doctors by hospital branch number", message: "siapa dokter di RS Primaya Tangerang 2", intent: IntentFindDoctorByHospital},
+		{name: "doctors by hospital with duplicate rs phrase", message: "siapa dokter di rumah sakit RS Cengkareng", intent: IntentFindDoctorByHospital},
 		{name: "schedule doctors by hospital", message: "tolong jadwal dokter di rumah sakit RSUP Nasional", intent: IntentFindDoctorByHospital},
 		{name: "hospital detail", message: "detail rumah sakit RSUP Nasional", intent: IntentAskHospitalLocation},
 		{name: "specialization list", message: "list spesialisasi", intent: IntentListSpecializations},
+		{name: "specialization list by hospital", message: "ada apa saja spesialisasi di rumah sakit bunda margonda depok", intent: IntentListSpecializationsByHospital},
 		{name: "schedule with date", message: "jadwal dokter budi besok", intent: IntentAskDoctorSchedule},
-		{name: "schedule without date", message: "jadwal dokter budi", intent: IntentAskDoctor},
+		{name: "schedule hour question", message: "jam berapa jadwal dokter budi besok", intent: IntentAskDoctorSchedule},
+		{name: "schedule when question", message: "kapan dokter budi besok", intent: IntentAskDoctorSchedule},
+		{name: "schedule without date", message: "jadwal dokter budi", intent: IntentAskDoctorSchedule},
 		{name: "booking", message: "booking dokter anak besok jam 10:00", intent: IntentBookAppointment},
 		{name: "symptom is not recognized", message: "saya nyeri dada berat dan sulit bernapas", intent: IntentUnknown},
 	}
@@ -94,6 +148,18 @@ func TestTranslateCoreIntents(t *testing.T) {
 			}
 		})
 	}
+}
+
+func syntaxTreeHasNode(node SyntaxNode, nodeType, value string) bool {
+	if node.Type == nodeType && node.Value == value {
+		return true
+	}
+	for _, child := range node.Children {
+		if syntaxTreeHasNode(child, nodeType, value) {
+			return true
+		}
+	}
+	return false
 }
 
 func TestChatRequestAcceptsStringUserID(t *testing.T) {

@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"service-antrik-chatbot/models"
@@ -14,8 +15,11 @@ const (
 	flowBooking               = "BOOKING"
 	awaitingDoctor            = "DOCTOR"
 	awaitingDoctorSelection   = "DOCTOR_SELECTION"
+	awaitingHospitalSelection = "HOSPITAL_SELECTION"
+	awaitingScheduleDoctor    = "SCHEDULE_DOCTOR_SELECTION"
 	awaitingScheduleSelection = "SCHEDULE_SELECTION"
 	awaitingTimeSelection     = "TIME_SELECTION"
+	awaitingComplaint         = "COMPLAINT"
 	awaitingPatientDetails    = "PATIENT_DETAILS"
 )
 
@@ -92,6 +96,9 @@ func (e *Evaluator) continueBookingFlow(req ChatRequest, state ChatState, respon
 		}
 		flowResponse, err := e.selectTimeByNumber(state, response, number)
 		return true, flowResponse, err
+	case awaitingComplaint:
+		flowResponse, err := e.saveComplaint(req, state, response)
+		return true, flowResponse, err
 	case awaitingPatientDetails:
 		flowResponse, err := e.createAppointmentFromPatientDetails(req, state, response)
 		return true, flowResponse, err
@@ -106,7 +113,11 @@ func (e *Evaluator) selectDoctorByNumber(state ChatState, response ChatResponse,
 	}
 
 	selected := state.PendingDoctors[number-1]
-	rememberDoctorSummary(&state, selected)
+	state.SelectedDoctorID = selected.ID
+	state.SelectedDoctorName = selected.Name
+	state.SelectedHospitalID = selected.HospitalID
+	state.SelectedHospitalName = selected.Hospital
+	state.SelectedSpecialty = selected.Specialization
 
 	return e.showBookableScheduleOptions(state, response)
 }
@@ -189,6 +200,26 @@ func (e *Evaluator) selectTimeByNumber(state ChatState, response ChatResponse, n
 	}
 
 	state.SelectedTime = selected.Time
+	state.Awaiting = awaitingComplaint
+	response.NeedInput = []string{"complaint"}
+	response.Reply = "Keluhan pasien apa yang ingin dicatat untuk appointment ini?"
+	return e.finish(response, state)
+}
+
+func (e *Evaluator) saveComplaint(req ChatRequest, state ChatState, response ChatResponse) (ChatResponse, error) {
+	complaint := strings.TrimSpace(req.Message)
+	if complaint == "" {
+		response.NeedInput = []string{"complaint"}
+		response.Reply = "Keluhan belum terisi. Tulis singkat keluhan pasien, misalnya: sakit gigi sejak 2 hari."
+		return e.finish(response, state)
+	}
+	if hasPatientDetails(complaint) {
+		response.NeedInput = []string{"complaint"}
+		response.Reply = "Sebelum data pasien, tulis dulu keluhan singkat untuk catatan appointment, misalnya: sakit gigi sejak 2 hari."
+		return e.finish(response, state)
+	}
+
+	state.PatientComplaint = complaint
 	state.Awaiting = awaitingPatientDetails
 	response.NeedInput = []string{"name", "phone", "email"}
 	response.Reply = "Masukkan data pasien dengan format:\nNama: Budi Santoso\nPhone: 081234567890\nEmail: budi@example.com"
@@ -283,6 +314,7 @@ func (e *Evaluator) createAppointmentFromState(req ChatRequest, state ChatState,
 		HospitalID:      state.SelectedHospitalID,
 		AppointmentDate: appointmentDate,
 		AppointmentTime: state.SelectedTime,
+		SymptomsNote:    state.PatientComplaint,
 		Status:          models.StatusPending,
 	}
 

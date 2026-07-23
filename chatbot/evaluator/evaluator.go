@@ -33,12 +33,47 @@ func NewEvaluator(
 }
 
 func (e *Evaluator) Evaluate(req ChatRequest, parsed ParseResult, intent Intent, confidence float64) (ChatResponse, error) {
-	state := e.loadState(req)
-	e.enrichStateFromParsed(&state, parsed)
+	state := e.stateStore.Get(req.ChatID)
+	state.ChatID = req.ChatID
+	if req.UserID != 0 {
+		state.UserID = uint(req.UserID)
+	}
+	if parsed.Entities.Specialization != "" {
+		state.SelectedSpecialty = parsed.Entities.Specialization
+	}
+	if parsed.Entities.Date != "" {
+		state.SelectedDate = parsed.Entities.Date
+	}
+	if parsed.Entities.Time != "" {
+		state.SelectedTime = parsed.Entities.Time
+	}
+	if shouldInterruptBookingFlow(state, intent) {
+		state = ChatState{ChatID: req.ChatID, UserID: state.UserID}
+		if parsed.Entities.Specialization != "" {
+			state.SelectedSpecialty = parsed.Entities.Specialization
+		}
+		if parsed.Entities.Date != "" {
+			state.SelectedDate = parsed.Entities.Date
+		}
+		if parsed.Entities.Time != "" {
+			state.SelectedTime = parsed.Entities.Time
+		}
+	}
 
-	response := newResponse(req, parsed, intent, confidence)
+	response := ChatResponse{
+		ChatID:     req.ChatID,
+		Intent:     intent,
+		Tokens:     parsed.Tokens,
+		Parsed:     parsed,
+		Confidence: confidence,
+	}
 
 	if intent != IntentCancelFlow {
+		handled, selectionResponse, err := e.continuePendingSelection(req, state, response)
+		if handled || err != nil {
+			return selectionResponse, err
+		}
+
 		handled, flowResponse, err := e.continueBookingFlow(req, state, response)
 		if handled || err != nil {
 			return flowResponse, err
@@ -64,6 +99,8 @@ func (e *Evaluator) Evaluate(req ChatRequest, parsed ParseResult, intent Intent,
 		return e.hospitalLocation(state, response)
 	case IntentListSpecializations:
 		return e.listSpecializations(state, response)
+	case IntentListSpecializationsByHospital:
+		return e.listSpecializationsByHospital(state, response)
 	case IntentAskDoctor, IntentFindDoctorBySpecialization, IntentFindDoctorByHospital:
 		return e.findDoctors(state, response)
 	case IntentAskDoctorSchedule:
@@ -77,37 +114,6 @@ func (e *Evaluator) Evaluate(req ChatRequest, parsed ParseResult, intent Intent,
 	return e.finish(response, state)
 }
 
-func (e *Evaluator) enrichStateFromParsed(state *ChatState, parsed ParseResult) {
-	if parsed.Entities.Specialization != "" {
-		state.SelectedSpecialty = parsed.Entities.Specialization
-	}
-	if parsed.Entities.Date != "" {
-		state.SelectedDate = parsed.Entities.Date
-	}
-	if parsed.Entities.Time != "" {
-		state.SelectedTime = parsed.Entities.Time
-	}
-}
-
-func (e *Evaluator) loadState(req ChatRequest) ChatState {
-	state := e.stateStore.Get(req.ChatID)
-	state.ChatID = req.ChatID
-	if req.UserID != 0 {
-		state.UserID = uint(req.UserID)
-	}
-	return state
-}
-
-func newResponse(req ChatRequest, parsed ParseResult, intent Intent, confidence float64) ChatResponse {
-	return ChatResponse{
-		ChatID:     req.ChatID,
-		Intent:     intent,
-		Tokens:     parsed.Tokens,
-		Parsed:     parsed,
-		Confidence: confidence,
-	}
-}
-
 func (e *Evaluator) finish(response ChatResponse, state ChatState) (ChatResponse, error) {
 	response.State = &state
 	e.stateStore.Save(state)
@@ -117,4 +123,46 @@ func (e *Evaluator) finish(response ChatResponse, state ChatState) (ChatResponse
 func (e *Evaluator) replyWithState(response ChatResponse, state ChatState, reply string) (ChatResponse, error) {
 	response.Reply = reply
 	return e.finish(response, state)
+}
+
+func shouldInterruptBookingFlow(state ChatState, intent Intent) bool {
+	if state.CurrentFlow != flowBooking {
+		return false
+	}
+
+	switch intent {
+	case IntentAskDoctor,
+		IntentAskDoctorSchedule,
+		IntentListHospitals,
+		IntentAskHospitalLocation,
+		IntentListSpecializations,
+		IntentListSpecializationsByHospital,
+		IntentFindDoctorBySpecialization,
+		IntentFindDoctorByHospital,
+		IntentBookAppointment:
+		return true
+	default:
+		return false
+	}
+}
+
+func (e *Evaluator) continuePendingSelection(req ChatRequest, state ChatState, response ChatResponse) (bool, ChatResponse, error) {
+	switch state.Awaiting {
+	case awaitingHospitalSelection:
+		number, ok := parseSelectionNumber(req.Message)
+		if !ok {
+			return false, response, nil
+		}
+		selectionResponse, err := e.selectHospitalByNumber(state, response, number)
+		return true, selectionResponse, err
+	case awaitingScheduleDoctor:
+		number, ok := parseSelectionNumber(req.Message)
+		if !ok {
+			return false, response, nil
+		}
+		selectionResponse, err := e.selectScheduleDoctorByNumber(state, response, number)
+		return true, selectionResponse, err
+	default:
+		return false, response, nil
+	}
 }

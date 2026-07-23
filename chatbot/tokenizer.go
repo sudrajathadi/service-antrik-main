@@ -21,6 +21,10 @@ const (
 	TokenShow           = "tampilkan"
 	TokenExists         = "ada"
 	TokenWhat           = "apa"
+	TokenWho            = "siapa"
+	TokenWhen           = "kapan"
+	TokenHowMany        = "berapa"
+	TokenHour           = "jam"
 	TokenAll            = "saja"
 	TokenCity           = "kota"
 	TokenIn             = "di"
@@ -42,6 +46,12 @@ const (
 	PhraseAppointmentMeeting = "janji temu"
 )
 
+// TokenSynonyms berisi kamus normalisasi kata sebelum dipakai parser.
+// Contoh:
+// - "dr" menjadi "dokter"
+// - "rs" menjadi "rumah sakit"
+// - "reservasi" menjadi "booking"
+// - "alamat" menjadi "lokasi"
 var TokenSynonyms = map[string]string{
 	"dr":          TokenDoctor,
 	"doctor":      TokenDoctor,
@@ -74,7 +84,11 @@ var BookingIntentTokens = []string{TokenBooking, "pesan"}
 
 var LocationMarkerTokens = []string{TokenIn, TokenLocation, TokenCity}
 
+var QuestionTokens = []string{TokenWhat, TokenWho, TokenWhen, TokenHowMany, TokenLocation}
+
 // ActionTokens dipakai parser untuk membedakan kata perintah dari nama entity.
+// Contoh input: "tampilkan rumah sakit di depok"
+// Output action_words: ["tampilkan"]
 var ActionTokens = []string{
 	"cari",
 	TokenShow,
@@ -94,21 +108,27 @@ var ActionTokens = []string{
 }
 
 // EntityStopwordTokens menghentikan pembacaan nama dokter/rumah sakit/kota.
+// Contoh input: "jadwal dokter budi besok"
+// Saat membaca nama dokter setelah token "dokter", parser berhenti di token "besok"
+// sehingga output doctor_name menjadi "budi", bukan "budi besok".
 var EntityStopwordTokens = map[string]bool{
-	TokenExists:   true,
-	"yang":        true,
-	"untuk":       true,
-	"hari":        true,
-	"ini":         true,
-	TokenTomorrow: true,
-	TokenDayAfter: true,
-	"jam":         true,
-	"pukul":       true,
-	TokenSchedule: true,
-	TokenBooking:  true,
-	TokenLocation: true,
-	"dimana":      true,
-	TokenWhat:     true,
+	TokenExists:         true,
+	"yang":              true,
+	"untuk":             true,
+	"hari":              true,
+	"ini":               true,
+	TokenTomorrow:       true,
+	TokenDayAfter:       true,
+	"jam":               true,
+	"pukul":             true,
+	TokenSchedule:       true,
+	TokenBooking:        true,
+	TokenLocation:       true,
+	TokenIn:             true,
+	TokenHospitalFirst:  true,
+	TokenHospitalSecond: true,
+	"dimana":            true,
+	TokenWhat:           true,
 }
 
 // KnownCityPhrases membantu parser memisahkan "RS Bunda Margonda Depok"
@@ -128,6 +148,8 @@ var KnownCityPhrases = []string{
 }
 
 // SpecializationKeywordByToken membuat input seperti "dokter anak" menjadi spesialisasi "anak".
+// Contoh input: "booking dokter gigi"
+// Output entity specialization: "gigi"
 var SpecializationKeywordByToken = map[string]string{
 	"anak":         "anak",
 	"pediatri":     "anak",
@@ -157,7 +179,19 @@ var SpecializationKeywordByToken = map[string]string{
 	"rehabilitasi": "rehabilitasi",
 }
 
-func Tokenize(message string) []string {
+// Scan menjalankan proses scanner/tokenizer:
+// 1. Normalisasi huruf dan tanda baca.
+// 2. Memecah teks menjadi token.
+// 3. Mengganti sinonim sesuai TokenSynonyms.
+//
+// Contoh:
+// Input  : "Saya mau reservasi dr anak besok jam 10:00"
+// Output : ["saya", "mau", "booking", "dokter", "anak", "besok", "jam", "10:00"]
+//
+// Contoh:
+// Input  : "RS Bunda Margonda Depok"
+// Output : ["rumah", "sakit", "bunda", "margonda", "depok"]
+func Scan(message string) []string {
 	normalized := normalizeMessage(message)
 	parts := strings.Fields(normalized)
 	tokens := make([]string, 0, len(parts))
@@ -173,6 +207,21 @@ func Tokenize(message string) []string {
 	return tokens
 }
 
+func Tokenize(message string) []string {
+	return Scan(message)
+}
+
+// normalizeMessage membersihkan input sebelum dipecah menjadi token.
+// Huruf dibuat kecil, spasi dirapikan, tanda baca umum diganti spasi,
+// sedangkan ":", "-", dan "/" dipertahankan untuk format jam, telepon, atau tanggal.
+//
+// Contoh:
+// Input  : "Detail RSUP Nasional, dong!"
+// Output : "detail rsup nasional dong"
+//
+// Contoh:
+// Input  : "Nama: Budi Phone: 0812-3456 Email: budi@mail.com"
+// Output : "nama: budi phone: 0812-3456 email: budi mail com"
 func normalizeMessage(message string) string {
 	message = strings.ToLower(strings.TrimSpace(message))
 	var builder strings.Builder
@@ -219,8 +268,4 @@ func containsPhrase(message string, values ...string) bool {
 
 func isActionWord(token string) bool {
 	return containsToken([]string{token}, ActionTokens...)
-}
-
-func hasHospitalListWords(tokens []string) bool {
-	return containsToken(tokens, HospitalListIntentTokens...)
 }

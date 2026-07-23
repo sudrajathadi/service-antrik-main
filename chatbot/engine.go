@@ -14,11 +14,11 @@ func NewEngine(evaluator EvaluatorRunner) *Engine {
 
 func (e *Engine) Reply(req ChatRequest) (ChatResponse, error) {
 	// Pipeline chatbot rule-based:
-	// 1. Tokenize: pecah teks user menjadi token sederhana.
+	// 1. Scan: pecah teks user menjadi token sederhana.
 	// 2. Parse: ambil entity penting seperti dokter, rumah sakit, kota, tanggal, jam.
 	// 3. Translate: tentukan intent berdasarkan rule.
 	// 4. Evaluate: jalankan intent dan simpan state percakapan bila perlu.
-	tokens := Tokenize(req.Message)
+	tokens := Scan(req.Message)
 	parsed := Parse(req.Message, tokens)
 	intent, confidence := Translate(parsed)
 

@@ -27,6 +27,20 @@ func summarizeDoctors(doctors []models.Doctor) []DoctorSummary {
 	return summaries
 }
 
+func summarizeHospitals(hospitals []models.Hospital) []HospitalSummary {
+	summaries := make([]HospitalSummary, 0, len(hospitals))
+	for _, hospital := range hospitals {
+		summaries = append(summaries, HospitalSummary{
+			ID:          hospital.ID,
+			Name:        hospital.Name,
+			Address:     hospital.Address,
+			City:        hospital.City,
+			PhoneNumber: hospital.PhoneNumber,
+		})
+	}
+	return summaries
+}
+
 func joinHospitalNames(hospitals []models.Hospital) string {
 	names := make([]string, 0, len(hospitals))
 	for _, hospital := range hospitals {
@@ -34,6 +48,14 @@ func joinHospitalNames(hospitals []models.Hospital) string {
 	}
 	sort.Strings(names)
 	return strings.Join(names, "\n")
+}
+
+func joinNumberedHospitalNames(hospitals []HospitalSummary) string {
+	lines := make([]string, 0, len(hospitals))
+	for index, hospital := range hospitals {
+		lines = append(lines, fmt.Sprintf("%d. %s (%s) - %s", index+1, hospital.Name, hospital.City, hospital.Address))
+	}
+	return strings.Join(lines, "\n")
 }
 
 func joinSpecializationNames(specs []models.Specialization) string {
@@ -101,6 +123,7 @@ func bookingSuccessMessage(appointment models.Appointment, state ChatState, pati
 		"Rumah sakit: " + state.SelectedHospitalName,
 		"Tanggal: " + state.SelectedDate,
 		"Jam: " + state.SelectedTime,
+		"Keluhan: " + emptyDash(state.PatientComplaint),
 		"",
 		"Data pasien:",
 		"Nama: " + emptyDash(patientName),

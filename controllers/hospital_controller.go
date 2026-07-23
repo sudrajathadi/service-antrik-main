@@ -35,10 +35,13 @@ func (c *HospitalController) Create(ctx *gin.Context) {
 
 func (c *HospitalController) GetAll(ctx *gin.Context) {
 	city := strings.TrimSpace(ctx.Query("city"))
+	name := strings.TrimSpace(ctx.Query("name"))
 
 	var hospitals []models.Hospital
 	var err error
-	if city != "" {
+	if name != "" {
+		hospitals, err = c.repo.FindAllByName(name)
+	} else if city != "" {
 		hospitals, err = c.repo.FindAllByCity(city)
 	} else {
 		hospitals, err = c.repo.FindAll()
@@ -52,12 +55,19 @@ func (c *HospitalController) GetAll(ctx *gin.Context) {
 
 func (c *HospitalController) SearchByCity(ctx *gin.Context) {
 	city := strings.TrimSpace(ctx.Query("city"))
-	if city == "" {
-		respondError(ctx, http.StatusBadRequest, "CITY_REQUIRED", "city query parameter is required", "Use /api/hospitals/search?city=jakarta")
+	name := strings.TrimSpace(ctx.Query("name"))
+	if city == "" && name == "" {
+		respondError(ctx, http.StatusBadRequest, "SEARCH_QUERY_REQUIRED", "city or name query parameter is required", "Use /api/hospitals/search?city=jakarta or /api/hospitals/search?name=primaya")
 		return
 	}
 
-	hospitals, err := c.repo.FindAllByCity(city)
+	var hospitals []models.Hospital
+	var err error
+	if name != "" {
+		hospitals, err = c.repo.FindAllByName(name)
+	} else {
+		hospitals, err = c.repo.FindAllByCity(city)
+	}
 	if err != nil {
 		respondError(ctx, http.StatusInternalServerError, "HOSPITALS_FETCH_FAILED", "Hospitals could not be fetched", err.Error())
 		return
@@ -65,6 +75,7 @@ func (c *HospitalController) SearchByCity(ctx *gin.Context) {
 
 	respondSuccess(ctx, http.StatusOK, "Hospitals fetched successfully", gin.H{
 		"city":      city,
+		"name":      name,
 		"hospitals": hospitals,
 	})
 }
