@@ -86,6 +86,12 @@ func (e *Evaluator) Evaluate(req ChatRequest, parsed ParseResult, intent Intent,
 		return e.finish(response, state)
 	}
 
+	if _, ok := parseSelectionNumber(req.Message); ok && intent == IntentUnknown {
+		response.Reply = "Saya belum punya daftar pilihan aktif untuk nomor itu. Mulai lagi dengan bertanya dokter, jadwal dokter, atau booking dokter."
+		response.NeedInput = []string{"question"}
+		return e.finish(response, state)
+	}
+
 	switch intent {
 	case IntentGreeting:
 		response.Reply = "Halo, saya bisa bantu cari dokter, cek jadwal, list rumah sakit, lokasi rumah sakit, spesialisasi, atau booking dokter."
@@ -148,6 +154,13 @@ func shouldInterruptBookingFlow(state ChatState, intent Intent) bool {
 
 func (e *Evaluator) continuePendingSelection(req ChatRequest, state ChatState, response ChatResponse) (bool, ChatResponse, error) {
 	switch state.Awaiting {
+	case awaitingDoctorSelection:
+		number, ok := parseSelectionNumber(req.Message)
+		if !ok {
+			return false, response, nil
+		}
+		selectionResponse, err := e.selectDoctorByNumber(state, response, number)
+		return true, selectionResponse, err
 	case awaitingHospitalSelection:
 		number, ok := parseSelectionNumber(req.Message)
 		if !ok {
@@ -161,6 +174,40 @@ func (e *Evaluator) continuePendingSelection(req ChatRequest, state ChatState, r
 			return false, response, nil
 		}
 		selectionResponse, err := e.selectScheduleDoctorByNumber(state, response, number)
+		return true, selectionResponse, err
+	case awaitingScheduleDate:
+		if state.SelectedDoctorID == 0 {
+			response.NeedInput = []string{"doctor_name"}
+			response.Reply = "Jadwal dokter siapa yang ingin dilihat? Sebutkan nama dokternya."
+			selectionResponse, err := e.finish(response, state)
+			return true, selectionResponse, err
+		}
+		doctor, err := e.doctors.FindByID(state.SelectedDoctorID)
+		if err != nil {
+			return true, response, err
+		}
+		selectionResponse, err := e.showAvailableScheduleOptions(state, response, *doctor)
+		return true, selectionResponse, err
+	case awaitingScheduleInfo:
+		number, ok := parseSelectionNumber(req.Message)
+		if !ok {
+			return false, response, nil
+		}
+		selectionResponse, err := e.selectScheduleInfoByNumber(state, response, number)
+		return true, selectionResponse, err
+	case awaitingScheduleSelection:
+		number, ok := parseSelectionNumber(req.Message)
+		if !ok {
+			return false, response, nil
+		}
+		selectionResponse, err := e.selectScheduleByNumber(state, response, number)
+		return true, selectionResponse, err
+	case awaitingTimeSelection:
+		number, ok := parseSelectionNumber(req.Message)
+		if !ok {
+			return false, response, nil
+		}
+		selectionResponse, err := e.selectTimeByNumber(state, response, number)
 		return true, selectionResponse, err
 	default:
 		return false, response, nil

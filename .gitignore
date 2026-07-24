@@ -69,6 +69,9 @@ Thumbs.db
 # Node (if frontend is added later)
 node_modules/
 
+# Python local virtual environments
+.venv*/
+
 # Gin specific
 gin-bin
 

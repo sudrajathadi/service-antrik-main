@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	"service-antrik-chatbot/models"
 	"service-antrik-chatbot/repository"
@@ -274,16 +275,16 @@ func (e *Evaluator) findDoctors(state ChatState, response ChatResponse) (ChatRes
 	}
 
 	summaries := summarizeDoctors(doctors)
-	state.CurrentFlow = flowBooking
-	state.PendingDoctors = summaries
+	state.CurrentFlow = ""
+	state.PendingDoctors = nil
 	state.PendingSchedules = nil
 	state.PendingTimeSlots = nil
-	state.Awaiting = awaitingDoctorSelection
+	state.Awaiting = ""
 	response.Data = summaries
 	if response.Parsed.Entities.HospitalName != "" {
-		response.Reply = "Saya menemukan dokter di " + response.Parsed.Entities.HospitalName + ":\n" + joinNumberedDoctorNames(summaries) + "\n\nBalas dengan nomor dokter yang ingin dipilih."
+		response.Reply = "Saya menemukan dokter di " + response.Parsed.Entities.HospitalName + ":\n" + joinNumberedDoctorNames(summaries) + "\n\nKamu bisa tanya jadwal dengan menyebut nama dokter, atau ketik booking dokter jika ingin membuat appointment."
 	} else {
-		response.Reply = "Saya menemukan dokter berikut:\n" + joinNumberedDoctorNames(summaries) + "\n\nBalas dengan nomor dokter yang ingin dipilih."
+		response.Reply = "Saya menemukan dokter berikut:\n" + joinNumberedDoctorNames(summaries) + "\n\nKamu bisa tanya jadwal dengan menyebut nama dokter, atau ketik booking dokter jika ingin membuat appointment."
 	}
 	return e.finish(response, state)
 }
@@ -307,19 +308,19 @@ func (e *Evaluator) findDoctorsForHospital(state ChatState, response ChatRespons
 	}
 
 	summaries := summarizeDoctors(doctors)
-	state.CurrentFlow = flowBooking
-	state.PendingDoctors = summaries
+	state.CurrentFlow = ""
+	state.PendingDoctors = nil
 	state.PendingHospitals = nil
 	state.PendingSchedules = nil
 	state.PendingTimeSlots = nil
-	state.Awaiting = awaitingDoctorSelection
+	state.Awaiting = ""
 	response.Data = summaries
-	response.Reply = "Saya menemukan dokter di " + hospital.Name + ":\n" + joinNumberedDoctorNames(summaries) + "\n\nBalas dengan nomor dokter yang ingin dipilih."
+	response.Reply = "Saya menemukan dokter di " + hospital.Name + ":\n" + joinNumberedDoctorNames(summaries) + "\n\nKamu bisa tanya jadwal dengan menyebut nama dokter, atau ketik booking dokter jika ingin membuat appointment."
 	return e.finish(response, state)
 }
 
 func (e *Evaluator) showSchedule(state ChatState, response ChatResponse) (ChatResponse, error) {
-	if state.SelectedDoctorID == 0 && response.Parsed.Entities.DoctorName != "" {
+	if response.Parsed.Entities.DoctorName != "" {
 		doctors, err := e.findDoctorCandidates(response.Parsed)
 		if err != nil {
 			return response, err
@@ -329,6 +330,10 @@ func (e *Evaluator) showSchedule(state ChatState, response ChatResponse) (ChatRe
 		}
 		if len(doctors) == 1 {
 			rememberDoctor(&state, doctors[0])
+		} else {
+			response.Reply = "Saya belum menemukan dokter dengan nama " + response.Parsed.Entities.DoctorName + ". Coba tulis nama dokter yang lebih lengkap."
+			response.NeedInput = []string{"doctor_name"}
+			return e.finish(response, state)
 		}
 	}
 
@@ -343,51 +348,82 @@ func (e *Evaluator) showSchedule(state ChatState, response ChatResponse) (ChatRe
 	}
 
 	rememberDoctor(&state, *doctor)
-	if state.SelectedDate == "" {
-		response.Reply = "Untuk melihat slot yang sudah booked, sebutkan tanggalnya. Contoh: jadwal dokter " + doctor.Name + " besok."
-		response.NeedInput = []string{"date"}
-		return e.finish(response, state)
-	}
+	return e.showAvailableScheduleOptions(state, response, *doctor)
+}
 
+func (e *Evaluator) showAvailableScheduleOptions(state ChatState, response ChatResponse, doctor models.Doctor) (ChatResponse, error) {
 	schedules, err := e.schedules.FindAllByDoctorID(doctor.ID)
 	if err != nil {
 		return response, err
 	}
+	if len(schedules) == 0 {
+		return e.replyWithState(response, state, doctor.Name+" belum memiliki jadwal praktik.")
+	}
 
-	summaries := make([]ScheduleSummary, 0, len(schedules))
+	options := make([]ScheduleOption, 0, len(schedules))
 	for _, schedule := range schedules {
-		matchesDate, err := scheduleMatchesDate(schedule.DayOfWeek, state.SelectedDate)
-		if err != nil {
-			response.Reply = "Format tanggal belum valid. Gunakan format YYYY-MM-DD, atau tulis hari ini, besok, atau lusa."
-			response.NeedInput = []string{"date"}
-			return e.finish(response, state)
-		}
-		if !matchesDate {
+		date, ok := nextDateForDay(schedule.DayOfWeek, time.Now())
+		if !ok {
 			continue
 		}
-
-		booked, err := e.schedules.GetBookedAppointments(schedule.DoctorID, state.SelectedDate)
-		if err != nil {
-			return response, err
-		}
-		schedule.TimeSlots = markBookedSlots(booked, schedule.TimeSlots)
-		summaries = append(summaries, ScheduleSummary{
-			DoctorID:   doctor.ID,
-			DoctorName: doctor.Name,
-			DayOfWeek:  schedule.DayOfWeek,
-			StartTime:  trimTime(schedule.StartTime),
-			EndTime:    trimTime(schedule.EndTime),
-			TimeSlots:  schedule.TimeSlots,
+		options = append(options, ScheduleOption{
+			Number:       len(options) + 1,
+			ScheduleID:   schedule.ID,
+			DoctorID:     schedule.DoctorID,
+			DoctorName:   doctor.Name,
+			Date:         date,
+			DayOfWeek:    schedule.DayOfWeek,
+			StartTime:    trimTime(schedule.StartTime),
+			EndTime:      trimTime(schedule.EndTime),
+			SlotInterval: schedule.SlotInterval,
 		})
 	}
 
-	response.Data = summaries
-	if len(summaries) == 0 {
-		response.Reply = doctor.Name + " tidak memiliki jadwal praktik pada tanggal " + state.SelectedDate + "."
-	} else {
-		response.Reply = fmt.Sprintf("Jadwal %s untuk tanggal %s:\n%s\n\nSlot dengan status booked sudah terisi.", doctor.Name, state.SelectedDate, joinSchedules(summaries))
+	if len(options) == 0 {
+		return e.replyWithState(response, state, "Jadwal dokter belum bisa dibaca karena format hari tidak dikenali.")
 	}
 
+	state.CurrentFlow = ""
+	state.Awaiting = awaitingScheduleInfo
+	state.SelectedDate = ""
+	state.PendingDoctors = nil
+	state.PendingSchedules = options
+	state.PendingTimeSlots = nil
+	response.Data = options
+	response.NeedInput = []string{awaitingScheduleInfo}
+	response.Reply = "Pilih jadwal praktik " + doctor.Name + ":\n" + joinNumberedScheduleOptions(options) + "\n\nBalas dengan nomor jadwal untuk melihat slot jam."
+	return e.finish(response, state)
+}
+
+func (e *Evaluator) selectScheduleInfoByNumber(state ChatState, response ChatResponse, number int) (ChatResponse, error) {
+	if number < 1 || number > len(state.PendingSchedules) {
+		return e.replyWithState(response, state, fmt.Sprintf("Nomor jadwal tidak tersedia. Pilih nomor 1 sampai %d.", len(state.PendingSchedules)))
+	}
+
+	selected := state.PendingSchedules[number-1]
+	booked, err := e.schedules.GetBookedAppointments(selected.DoctorID, selected.Date)
+	if err != nil {
+		return response, err
+	}
+
+	slots := buildTimeSlotStatusOptions(selected, booked)
+	if len(slots) == 0 {
+		return e.replyWithState(response, state, "Slot jam pada jadwal tersebut belum bisa dibaca. Pilih jadwal lain:\n"+joinNumberedScheduleOptions(state.PendingSchedules))
+	}
+	state.SelectedDate = selected.Date
+	state.PendingSchedules = nil
+	state.PendingTimeSlots = nil
+	state.Awaiting = ""
+	response.Data = slots
+	response.Reply = fmt.Sprintf(
+		"Jadwal %s pada %s, %s (%s-%s):\n%s\n\nSlot dengan status booked sudah terisi.",
+		selected.DoctorName,
+		selected.DayOfWeek,
+		selected.Date,
+		selected.StartTime,
+		selected.EndTime,
+		joinTimeSlotOptionStatuses(slots),
+	)
 	return e.finish(response, state)
 }
 
@@ -404,6 +440,7 @@ func (e *Evaluator) askScheduleDoctorSelection(state ChatState, response ChatRes
 	state.CurrentFlow = ""
 	state.Awaiting = awaitingScheduleDoctor
 	state.PendingIntent = IntentAskDoctorSchedule
+	state.SelectedDate = ""
 	state.PendingDoctors = summaries
 	state.PendingHospitals = nil
 	state.PendingSchedules = nil
@@ -428,6 +465,7 @@ func (e *Evaluator) selectScheduleDoctorByNumber(state ChatState, response ChatR
 	state.PendingIntent = ""
 	state.PendingDoctors = nil
 	state.Awaiting = ""
+	response.Parsed.Entities.DoctorName = ""
 
 	return e.showSchedule(state, response)
 }

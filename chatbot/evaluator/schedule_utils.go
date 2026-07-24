@@ -87,6 +87,31 @@ func buildTimeSlotOptions(schedule ScheduleOption, bookedAppointments []models.A
 	return options
 }
 
+func buildTimeSlotStatusOptions(schedule ScheduleOption, bookedAppointments []models.Appointment) []TimeSlotOption {
+	start, errStart := parseClock(schedule.StartTime)
+	end, errEnd := parseClock(schedule.EndTime)
+	if errStart != nil || errEnd != nil || schedule.SlotInterval <= 0 {
+		return nil
+	}
+
+	booked := make(map[string]bool)
+	for _, appointment := range bookedAppointments {
+		booked[trimTime(appointment.AppointmentTime)] = true
+	}
+
+	var options []TimeSlotOption
+	for current := start; current.Before(end); current = current.Add(time.Duration(schedule.SlotInterval) * time.Minute) {
+		value := current.Format("15:04")
+		options = append(options, TimeSlotOption{
+			Number: len(options) + 1,
+			Date:   schedule.Date,
+			Time:   value,
+			Booked: booked[value],
+		})
+	}
+	return options
+}
+
 func scheduleMatchesDate(dayName string, date string) (bool, error) {
 	scheduleDay, ok := parseWeekday(dayName)
 	if !ok {

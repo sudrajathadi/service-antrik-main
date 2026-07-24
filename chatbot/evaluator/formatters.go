@@ -115,6 +115,18 @@ func joinNumberedTimeSlotOptions(options []TimeSlotOption) string {
 	return strings.Join(lines, "\n")
 }
 
+func joinTimeSlotOptionStatuses(options []TimeSlotOption) string {
+	lines := make([]string, 0, len(options))
+	for _, option := range options {
+		status := "available"
+		if option.Booked {
+			status = "booked"
+		}
+		lines = append(lines, fmt.Sprintf("- %s (%s)", option.Time, status))
+	}
+	return strings.Join(lines, "\n")
+}
+
 func bookingSuccessMessage(appointment models.Appointment, state ChatState, patientName string, patientPhone string, patientEmail string) string {
 	lines := []string{
 		"Booking berhasil dibuat dengan status pending.",

@@ -17,6 +17,8 @@ const (
 	awaitingDoctorSelection   = "DOCTOR_SELECTION"
 	awaitingHospitalSelection = "HOSPITAL_SELECTION"
 	awaitingScheduleDoctor    = "SCHEDULE_DOCTOR_SELECTION"
+	awaitingScheduleDate      = "SCHEDULE_DATE"
+	awaitingScheduleInfo      = "SCHEDULE_INFO_SELECTION"
 	awaitingScheduleSelection = "SCHEDULE_SELECTION"
 	awaitingTimeSelection     = "TIME_SELECTION"
 	awaitingComplaint         = "COMPLAINT"
